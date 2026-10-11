@@ -1,9 +1,11 @@
 """
-🖥️ Sniper Panel V9.1 — From Scratch
+🖥️ Sniper Panel V9.2 — From Scratch
 ✅ دخول مباشر بلا مفتاح (الحماية = سرية رابط Railway)
 ✅ عرض كل إجراء صغير وكبير يقوم به البوت
 ✅ لا تعليق: مهلة 6 ثوان لكل طلب + فشل مرئي
-✅ جديد V9.1: تبويب 📊 الأداء اليومي — صفقات/فوز/خسارة كل يوم + سجل 14 يوم + إجماليات
+✅ V9.1: تبويب 📊 الأداء اليومي — صفقات/فوز/خسارة كل يوم + سجل 14 يوم + إجماليات
+✅ جديد V9.2: زر 🧹 إعادة ضبط شامل — بضغطة واحدة يمسح كل الإشعارات والصفقات المسجلة
+   والإحصائيات والأخطاء وسجل المطوّر (لا يغلق الصفقات المفتوحة ولا يلمس مراكزك الحية)
 """
 
 import os
@@ -25,7 +27,7 @@ PAGE = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🎯 القناص V9.1</title>
+<title>🎯 القناص V9.2</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -128,7 +130,7 @@ margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:13px;color
 <header class="hd"><div class="hd-in">
   <div class="logo">
     <div class="logo-ic">🎯</div>
-    <div><h1>القناص الأسطوري</h1><span id="modeTxt">V9.1 — شاشة العمليات</span></div>
+    <div><h1>القناص الأسطوري</h1><span id="modeTxt">V9.2 — شاشة العمليات</span></div>
   </div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <div class="badge" id="liveB"><span class="dot"></span><span id="liveT">البوت حي ✓</span></div>
@@ -207,6 +209,9 @@ margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:13px;color
           <button class="act btn-s" id="pauseBtn" onclick="togglePause()">⏸️ إيقاف مؤقت</button>
           <button class="act btn-r" onclick="closeAll()">🛑 إغلاق الكل</button>
         </div>
+        <div class="arow" style="margin-top:10px">
+          <button class="act" style="width:100%;background:rgba(234,179,8,.12);color:var(--yellow);border:1px solid rgba(234,179,8,.4)" onclick="resetAll()">🧹 إعادة ضبط شامل — مسح كل البيانات والسجلات</button>
+        </div>
         <p style="color:var(--sub);font-size:11px;margin-top:10px;line-height:1.6">
         ⚠️ الحماية عبر سرية الرابط — لا تشاركه!<br>المراكز محمية بستوب المنصة دائماً.</p>
       </div>
@@ -214,7 +219,7 @@ margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:13px;color
   </div>
 </div>
 
-<div class="foot">🔥 القناص الأسطوري V9.1 — شاشة العمليات | الحماية عبر سرية الرابط</div>
+<div class="foot">🔥 القناص الأسطوري V9.2 — شاشة العمليات | الحماية عبر سرية الرابط</div>
 </main>
 
 <script>
@@ -250,7 +255,7 @@ async function loadAll(){
     new Date().toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   document.getElementById('balance').textContent = '$' + (+ov.balance).toFixed(2);
   const mode = ov.trade_enabled ? (ov.testnet ? '⚔️ تداول تجريبي 🧪' : '⚔️ تداول حقيقي') : '👁️ مراقبة';
-  document.getElementById('modeTxt').textContent = mode + ' • V9.1';
+  document.getElementById('modeTxt').textContent = mode + ' • V9.2';
   document.getElementById('modeSub').textContent = ov.leverage+'x • $'+ov.trade_size+' • '+ov.pairs+' زوج';
 
   const dp = ov.today ? ov.today.pnl : 0;
@@ -308,7 +313,7 @@ async function loadAll(){
     sb.innerHTML = h + '</table>';
   }
 
-  /* ✅ الأداء اليومي (V9.1) */
+  /* الأداء اليومي */
   const dper = await api('/api/daily');
   const tB = document.getElementById('todayBox');
   if(tB && dper.today){
@@ -436,6 +441,25 @@ async function closeAll(){
   }catch(e){ alert('فشل: '+e.message); }
 }
 
+/* ✅ V9.2: إعادة ضبط شامل — مسح كل السجلات والبيانات (بدون لمس الصفقات المفتوحة) */
+async function resetAll(){
+  if(!confirm('⚠️ إعادة ضبط شامل!\n\nسيتم مسح:\n🔔 كل الإشعارات\n📂 سجل الصفقات المغلقة\n📡 سجل الإشارات\n📊 الإحصائيات اليومية والإجماليات\n🚨 عدّادات الأخطاء\n🧠 سجل المطوّر\n\n✅ لن تُغلق أي صفقة مفتوحة\n❌ لا يمكن التراجع! متابعة؟')) return;
+  if(!confirm('❓ تأكيد أخير: هل أنت متأكد 100% من المسح الكامل؟')) return;
+  try{
+    const r = await (await fetch('/api/reset-all',{method:'POST'})).json();
+    if(r.ok){
+      lastNid = 0;
+      document.getElementById('notifFeed').innerHTML = '';
+      document.getElementById('liveFeed').innerHTML = '';
+      document.getElementById('nCount').textContent = '0';
+      alert('✅ تمت إعادة الضبط بنجاح!\nالشاشة الآن نظيفة تماماً — بداية جديدة 🎯');
+      loadAll();
+    } else {
+      alert('❌ فشل: ' + (r.error || 'خطأ غير معروف'));
+    }
+  }catch(e){ alert('❌ فشل الاتصال: ' + e.message); }
+}
+
 async function boot(){
   try{
     await loadAll();
@@ -491,6 +515,16 @@ class PanelDB:
                 }
         except Exception:
             return {'items': [], 'last_id': after_id, 'total_unread': 0}
+
+    async def clear_all(self):
+        """✅ V9.2: مسح كل الإشعارات من القاعدة"""
+        try:
+            async with aiosqlite.connect(self.db_name) as db:
+                await db.execute("DELETE FROM notifications")
+                await db.commit()
+            return True
+        except Exception:
+            return False
 
 
 PANEL_DB = None
@@ -700,6 +734,56 @@ def create_app(bot):
                 closed.append(symbol)
         return j({'ok': True, 'closed': closed})
 
+    async def reset_all(request):
+        """✅ V9.2: إعادة ضبط شامل — مسح كل السجلات والبيانات
+        ملاحظة: لا يغلق الصفقات المفتوحة ولا يلمس المراكز الحية على المنصة"""
+        cleared = []
+        try:
+            # 1. مسح الإشعارات
+            if PANEL_DB:
+                await PANEL_DB.clear_all()
+                cleared.append('الإشعارات')
+
+            async with aiosqlite.connect(bot.db.db_name) as db:
+                # 2. مسح سجل الصفقات والإشارات
+                await db.execute("DELETE FROM signal_log")
+                cleared.append('سجل الصفقات والإشارات')
+                # 3. مسح الإحصائيات اليومية
+                await db.execute("DELETE FROM daily_stats")
+                cleared.append('الإحصائيات اليومية')
+                await db.commit()
+
+            # 4. تصفير الإحصائيات في الذاكرة (بدون لمس الصفقات المفتوحة)
+            try:
+                keep = {'total_scans', 'signals_found', 'total_signals'}
+                for k in list(bot.stats.keys()):
+                    if k not in keep:
+                        bot.stats[k] = 0
+                bot.stats['wins'] = 0
+                bot.stats['losses'] = 0
+            except Exception:
+                pass
+            cleared.append('عدّادات الإحصائيات')
+
+            # 5. تصفير عدّادات الأخطاء
+            try:
+                bot.error_counts.clear()
+            except Exception:
+                pass
+            cleared.append('عدّادات الأخطاء')
+
+            # 6. تصفير سجل المُطوّر (آخر 20 نتيجة)
+            try:
+                bot.tuner.results.clear()
+            except Exception:
+                pass
+            cleared.append('سجل المطوّر')
+
+            await notify('system', '⚙️ إعادة ضبط شامل', 'تم مسح: ' + '، '.join(cleared))
+            return j({'ok': True, 'cleared': cleared})
+        except Exception as e:
+            return j({'ok': False, 'error': str(e)}, status=500)
+
     app = web.Application()
     app.router.add_get('/', index)
     app.router.add_get('/api/overview', overview)
@@ -714,6 +798,7 @@ def create_app(bot):
     app.router.add_post('/api/pause', pause)
     app.router.add_post('/api/resume', resume)
     app.router.add_post('/api/close-all', close_all)
+    app.router.add_post('/api/reset-all', reset_all)
     return app
 
 
@@ -728,7 +813,7 @@ async def start_web_panel(bot):
         port = int(os.environ.get('PORT', '8080'))
         site = web.TCPSite(runner, '0.0.0.0', port)
         await site.start()
-        print(f'🖥️ لوحة القناص V9.1 تعمل على المنفذ {port} — دخول مباشر')
+        print(f'🖥️ لوحة القناص V9.2 تعمل على المنفذ {port} — دخول مباشر')
         return True
     except Exception as e:
         print(f'⚠️ فشل اللوحة (البوت يكمل عمله): {e}')
