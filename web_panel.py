@@ -132,7 +132,8 @@ margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:13px;color
   </div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <div class="badge" id="liveB"><span class="dot"></span><span id="liveT">البوت حي ✓</span></div>
-    <button class="act btn-g" onclick="loadAll()">🔄 تحديث</button>
+        <button class="act btn-g" onclick="loadAll()">🔄 تحديث</button>
+    <button class="act btn-r" onclick="clearAll()">🧹 مسح</button>
   </div>
 </div></header>
 
