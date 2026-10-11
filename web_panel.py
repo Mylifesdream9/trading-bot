@@ -446,6 +446,20 @@ async function boot(){
   }
   if(!timer) timer = setInterval(()=>loadAll().catch(e=>console.error(e)), 10000);
 }
+
+async function clearAll(){
+  if(!confirm('🧹 مسح كل الإشعارات والسجل المعروض؟\n(لا يمسح الصفقات المفتوحة ولا الأداء اليومي المحفوظ)')) return;
+  try{
+    const r = await (await fetch('/api/clear-notifications', {method:'POST'})).json();
+    if(r.ok){
+      document.getElementById('notifFeed').innerHTML = '';
+      document.getElementById('liveFeed').innerHTML = '';
+      document.getElementById('nCount').textContent = '0';
+      lastNid = 0;
+      alert('✅ تم التنظيف — شاشة نظيفة كاليوم الأول!');
+    }
+  }catch(e){ alert('فشل: ' + e.message); }
+}
 boot();
 </script>
 </body>
