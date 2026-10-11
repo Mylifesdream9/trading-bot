@@ -443,7 +443,18 @@ async function closeAll(){
 
 /* ✅ V9.2: إعادة ضبط شامل — مسح كل السجلات والبيانات (بدون لمس الصفقات المفتوحة) */
 async function resetAll(){
-  if(!confirm('⚠️ إعادة ضبط شامل!\n\nسيتم مسح:\n🔔 كل الإشعارات\n📂 سجل الصفقات المغلقة\n📡 سجل الإشارات\n📊 الإحصائيات اليومية والإجماليات\n🚨 عدّادات الأخطاء\n🧠 سجل المطوّر\n\n✅ لن تُغلق أي صفقة مفتوحة\n❌ لا يمكن التراجع! متابعة؟')) return;
+  const NL = String.fromCharCode(10);
+  const msg = '⚠️ إعادة ضبط شامل!' + NL + NL
+    + 'سيتم مسح:' + NL
+    + '🔔 كل الإشعارات' + NL
+    + '📂 سجل الصفقات المغلقة' + NL
+    + '📡 سجل الإشارات' + NL
+    + '📊 الإحصائيات اليومية والإجماليات' + NL
+    + '🚨 عدّادات الأخطاء' + NL
+    + '🧠 سجل المطوّر' + NL + NL
+    + '✅ لن تُغلق أي صفقة مفتوحة' + NL
+    + '❌ لا يمكن التراجع! متابعة؟';
+  if(!confirm(msg)) return;
   if(!confirm('❓ تأكيد أخير: هل أنت متأكد 100% من المسح الكامل؟')) return;
   try{
     const r = await (await fetch('/api/reset-all',{method:'POST'})).json();
@@ -452,7 +463,7 @@ async function resetAll(){
       document.getElementById('notifFeed').innerHTML = '';
       document.getElementById('liveFeed').innerHTML = '';
       document.getElementById('nCount').textContent = '0';
-      alert('✅ تمت إعادة الضبط بنجاح!\nالشاشة الآن نظيفة تماماً — بداية جديدة 🎯');
+      alert('✅ تمت إعادة الضبط بنجاح!' + NL + 'الشاشة الآن نظيفة تماماً — بداية جديدة 🎯');
       loadAll();
     } else {
       alert('❌ فشل: ' + (r.error || 'خطأ غير معروف'));
