@@ -741,6 +741,7 @@ def create_app(bot):
     app.router.add_post('/api/pause', pause)
     app.router.add_post('/api/resume', resume)
     app.router.add_post('/api/close-all', close_all)
+    app.router.add_post('/api/clear-notifications', clear_notifications)
     return app
 
 
