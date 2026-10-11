@@ -444,7 +444,8 @@ class LegendarySniperFuturesV8:
                         await asyncio.sleep(10 * (attempt + 1))
                         continue
                     if r.status == 401:
-                        self._notify_error("خطأ 401 من Binance", context="مفاتيح API خاطئة أو مقيدة بـIP")
+                        self._notify_error("خطأ 401 من Binance",
+                        context=f"مفاتيح خاطئة أو مقيدة بـIP | الرد الخام: {body[:200]}")
                         return None
                     if '-1021' in body:
                         logger.warning("⚠️ خطأ توقيم -1021 — مزامنة الوقت وإعادة المحاولة")
