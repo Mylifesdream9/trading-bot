@@ -37,6 +37,20 @@ fh = RotatingFileHandler('bot_v8.log', maxBytes=2*1024*1024, backupCount=2, enco
 fh.setFormatter(fmt); logger.addHandler(fh)
 ch = logging.StreamHandler(); ch.setFormatter(fmt); logger.addHandler(ch)
 
+# ─── دالة فحص الـ IP الصادر عند الإقلاع ───
+def check_outbound_ip():
+    try:
+        response = requests.get('https://api.ipify.org?format=json', timeout=10)
+        ip_address = response.json().get('ip')
+        logger.info(f"Current Outbound IP on Railway: {ip_address}")
+        return ip_address
+    except Exception as e:
+        logger.warning(f"Failed to fetch IP: {e}")
+        return None
+
+# استدعاء الفحص مباشرة عند بدء التشغيل
+check_outbound_ip()
+
 # ═══════════════════════ قاعدة البيانات ═════════════════════
 class DatabaseManager:
     def __init__(self, db_name='sniper_v8.db'):
