@@ -704,7 +704,7 @@ def create_app(bot):
         bot.TRADE_ENABLED = True
         return j({'ok': True})
 
-    async def close_all(request):
+  async def close_all(request):
         closed = []
         for symbol, t in list(bot.active_trades.items()):
             prices = bot.get_price(symbol)
@@ -716,7 +716,7 @@ def create_app(bot):
         return j({'ok': True, 'closed': closed})
 
 
-     async def clear_notifications(request):
+  async def clear_notifications(request):
         """🧹 مسح كل الإشعارات + الصفقات المغلقة من السجل"""
         try:
             async with aiosqlite.connect(bot.db.db_name) as db:
