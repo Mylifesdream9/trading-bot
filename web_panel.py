@@ -715,6 +715,18 @@ def create_app(bot):
                 closed.append(symbol)
         return j({'ok': True, 'closed': closed})
 
+
+     async def clear_notifications(request):
+        """🧹 مسح كل الإشعارات + الصفقات المغلقة من السجل"""
+        try:
+            async with aiosqlite.connect(bot.db.db_name) as db:
+                await db.execute("DELETE FROM notifications")
+                await db.execute("DELETE FROM signal_log WHERE result >= 0")
+                await db.commit()
+        except Exception:
+            pass
+        return j({'ok': True})
+    
     app = web.Application()
     app.router.add_get('/', index)
     app.router.add_get('/api/overview', overview)
