@@ -382,7 +382,7 @@ class LegendarySniperFuturesV8:
 
         self.stats = {'total_scans': 0, 'trades_executed': 0, 'wins': 0, 'losses': 0}
 
-  async def print_recent_signals_to_logs(self):
+    async def print_recent_signals_to_logs(self):
         try:
             async with aiosqlite.connect(self.db.db_name) as db:
                 async with db.execute("""
@@ -407,7 +407,7 @@ class LegendarySniperFuturesV8:
                     logger.info("📊 ---------------------------------------------")
         except Exception as e:
             logger.warning(f"تعذر استخراج الإشارات للسجلات: {e}")
-  async def print_recent_signals_to_logs(self):
+     async def print_recent_signals_to_logs(self):
         try:
             async with aiosqlite.connect(self.db.db_name) as db:
                 async with db.execute("""
@@ -458,7 +458,7 @@ class LegendarySniperFuturesV8:
         elif price < 100: return f"${price:.2f}"
         else: return f"${price:,.1f}"
 
-    async def tg(self, msg):
+   async def tg(self, msg):
         """✅ كل إشعار يذهب للوحة"""
         try:
             first_line = msg.split('\n')[0].replace('*', '').strip()
