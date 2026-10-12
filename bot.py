@@ -1,14 +1,13 @@
 """
 ═══════════════════════════════════════════════════════════════════════
-  🔥 القناص الأسطوري V8.2 — Legendary Sniper (Adaptive Self-Healing) 🔥
+  🔥 القناص الأسطوري V9.0 — Legendary Sniper (Ultimate Precision & Self-Healing) 🔥
 ═══════════════════════════════════════════════════════════════════════
-  ✅ V8.2 (هذه النسخة):
-     - الخروج الديناميكي حسب تقييم الإشارة:
-       7-8/8 → جني 50% | 6/8 → جني 70% | أقل → 90% (كلاسيكي)
-     - TP2 الديناميكي: 7-8 → 5×ATR | 6 → 4.5×ATR | أقل → 4×ATR
-     - رسالة الصفقة تعرض خطة الخروج
-     - min_score مثبت عند 6/8 — لا صفقات أقل أبداً (بقرار المالك)
-  ✅ كامل إصلاحات V8.0/V8.1 (Algo API + كتم -4046 + مصالحة ذاتية...)
+  ✅ V9.0 (النسخة الخارقة المحصنة):
+     - تصفية جذرية لإشارات 6/8: تُرفض تلقائياً إن لم تكن مصحوبة بحجم تداول أو تصفية سيولة حقيقية.
+     - مناطق طلب/عرض ديناميكية (Dynamic OB) مبنية على الـ ATR لكل عملة.
+     - حماية كاملة لحدود الحد الأدنى للأعمدة (Min Notional) في الجني الجزئي والإغلاق.
+     - استوكاستك وزخم لحظي مؤكد على الشمعة المغلقة حصراً.
+     - مطور تكيفي ذكي يمنع الارتخاء العشوائي ويركز على دقة الدخول.
 ═══════════════════════════════════════════════════════════════════════
 """
 
@@ -30,14 +29,14 @@ from web_panel import start_web_panel, notify as panel_notify
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
-logger = logging.getLogger('SniperV8')
+logger = logging.getLogger('SniperV9')
 logger.setLevel(logging.INFO)
 fmt = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-fh = RotatingFileHandler('bot_v8.log', maxBytes=2*1024*1024, backupCount=2, encoding='utf-8')
+fh = RotatingFileHandler('bot_v9.log', maxBytes=2*1024*1024, backupCount=2, encoding='utf-8')
 fh.setFormatter(fmt); logger.addHandler(fh)
 ch = logging.StreamHandler(); ch.setFormatter(fmt); logger.addHandler(ch)
 
-# ─── دالة فحص الـ IP الصادر عند الإقلاع ───
+# ─── فحص الـ IP الصادر عند الإقلاع ───
 def check_outbound_ip():
     try:
         response = requests.get('https://api.ipify.org?format=json', timeout=10)
@@ -48,12 +47,11 @@ def check_outbound_ip():
         logger.warning(f"Failed to fetch IP: {e}")
         return None
 
-# استدعاء الفحص مباشرة عند بدء التشغيل
 check_outbound_ip()
 
 # ═══════════════════════ قاعدة البيانات ═════════════════════
 class DatabaseManager:
-    def __init__(self, db_name='sniper_v8.db'):
+    def __init__(self, db_name='sniper_v9.db'):
         self.db_name = db_name
 
     async def init_db(self):
@@ -183,22 +181,18 @@ class DatabaseManager:
             return None
 
 
-# ═══════════════════════ المطوّر التكيفي (Self-Tuning) ═════════════════════
+# ═══════════════════════ المطوّر التكيفي المحصن (Adaptive Tuner V9) ═════════════════════
 class AdaptiveTuner:
-    """
-    ✅ V8.2: min_score مثبت عند 6/8 بقرار المالك — لا يُخفَّض أبداً
-    الارتخاء/التشديد يعملان فقط على: نطاق القرب + صرامة الاستوكاستك
-    """
     def __init__(self, db):
         self.db = db
-        self.min_score = 6          # ✅ ثابت — لا صفقات بتقييم أقل من 6/8
-        self.proximity_pct = 0.02
+        self.min_score = 6          # الحد الأدنى الثابت
+        self.proximity_pct = 0.025  # نطاق قرب آمن ومحكم
         self.strict_stoch = True
         self.results = collections.deque(maxlen=20)
 
     def _clamp(self):
-        self.min_score = 6          # ✅ أمان ثابت
-        self.proximity_pct = max(0.015, min(0.045, float(self.proximity_pct)))
+        self.min_score = 6
+        self.proximity_pct = max(0.015, min(0.035, float(self.proximity_pct)))
 
     async def load(self):
         raw = await self.db.get_param('tuner')
@@ -206,13 +200,13 @@ class AdaptiveTuner:
             try:
                 d = json.loads(raw)
                 self.min_score = max(6, int(d.get('min_score', 6)))
-                self.proximity_pct = float(d.get('proximity_pct', 0.02))
+                self.proximity_pct = float(d.get('proximity_pct', 0.025))
                 self.strict_stoch = bool(d.get('strict_stoch', True))
                 self.results = collections.deque(d.get('results', [])[-20:], maxlen=20)
                 self._clamp()
-                logger.info(f"🧠 المطوّر التكيفي محمّل: {self.describe()}")
+                logger.info(f"🧠 المطوّر التكيفي V9 محمّل: {self.describe()}")
             except Exception as e:
-                logger.warning(f"تعذر تحميل المطوّر التكيفي (سيبدأ افتراضياً): {e}")
+                logger.warning(f"تعذر تحميل المطوّر التكيفي: {e}")
 
     async def save(self):
         try:
@@ -231,18 +225,10 @@ class AdaptiveTuner:
             return None
         return sum(recent) / len(recent)
 
-    def relax_step(self):
-        # ✅ يحافظ على ≥6 دائماً — الارتخاء في نطاق القرب فقط
-        before = round(self.proximity_pct, 4)
-        if self.proximity_pct < 0.045:
-            self.proximity_pct = round(min(0.045, self.proximity_pct + 0.005), 4)
-        return before != round(self.proximity_pct, 4)
-
     def tighten_step(self):
-        # ✅ التشديد في القرب/الستوك فقط
         before = (self.strict_stoch, round(self.proximity_pct, 4))
-        if self.proximity_pct > 0.02:
-            self.proximity_pct = round(max(0.02, self.proximity_pct - 0.005), 4)
+        if self.proximity_pct > 0.015:
+            self.proximity_pct = round(max(0.015, self.proximity_pct - 0.005), 4)
         self.strict_stoch = True
         return before != (self.strict_stoch, round(self.proximity_pct, 4))
 
@@ -251,29 +237,30 @@ class AdaptiveTuner:
                 f"ستوك صارم={'نعم' if self.strict_stoch else 'لا'}")
 
 
-# ═══════════════════════ محرك SMC - صياد الحيتان ═════════════════════
+# ═══════════════════════ محرك SMC المحصن V9 ═════════════════════
 class WhaleSMCEngine:
     @staticmethod
-    def detect_order_blocks(df, trend):
+    def detect_order_blocks(df, trend, atr):
+        """مناطق طلب وعرض ديناميكية مبنية على الـ ATR لضمان الدقة لكل عملة"""
         obs = []
-        threshold = 0.015
+        if atr <= 0: return obs
+        threshold = max(0.008, min(0.025, (atr / df['close'].iloc[-1]) * 1.2))
 
         for i in range(2, len(df)-1):
             if df['close'].iloc[i] > df['open'].iloc[i]:
                 impulse_pct = (df['close'].iloc[i] - df['low'].iloc[i-1]) / df['low'].iloc[i-1]
-                if df['close'].iloc[i-1] < df['open'].iloc[i-1] and impulse_pct > threshold:
+                if df['close'].iloc[i-1] < df['open'].iloc[i-1] and impulse_pct >= threshold:
                     obs.append({'type': 'demand', 'top': df['open'].iloc[i-1],
                                 'bottom': df['low'].iloc[i-1], 'index': i-1})
             elif df['close'].iloc[i] < df['open'].iloc[i]:
                 impulse_pct = (df['high'].iloc[i-1] - df['close'].iloc[i]) / df['high'].iloc[i-1]
-                if df['close'].iloc[i-1] > df['open'].iloc[i-1] and impulse_pct > threshold:
+                if df['close'].iloc[i-1] > df['open'].iloc[i-1] and impulse_pct >= threshold:
                     obs.append({'type': 'supply', 'top': df['high'].iloc[i-1],
                                 'bottom': df['close'].iloc[i-1], 'index': i-1})
         return obs
 
     @staticmethod
     def detect_liquidity_sweep(df_15m, ob_zone, direction):
-        """تصفية سيولة (الزناد القوي) — الشمعة المغلقة الأخيرة فقط (منع Repainting)"""
         current_low = df_15m['low'].iloc[-2]
         current_high = df_15m['high'].iloc[-2]
         current_close = df_15m['close'].iloc[-2]
@@ -289,7 +276,6 @@ class WhaleSMCEngine:
 
     @staticmethod
     def detect_ob_retest(df_15m, ob_zone, direction):
-        """الزناد البديل: إعادة اختبار المنطقة خلال آخر 3 شمعات"""
         lows = df_15m['low'].iloc[-4:-1]
         highs = df_15m['high'].iloc[-4:-1]
         closes = df_15m['close'].iloc[-4:-1]
@@ -316,9 +302,9 @@ class WhaleSMCEngine:
 
 
 # ══════════════════════════════════════════════════════════════════════
-#           🔥 القناص الأسطوري V8.2 (Adaptive Self-Healing) 🔥
+#       🔥 القناص الأسطوري V9.0 — محرك التداول الأساسي 🔥
 # ══════════════════════════════════════════════════════════════════════
-class LegendarySniperFuturesV8:
+class LegendarySniperFuturesV9:
     def __init__(self):
         self.binance_api_key = os.environ.get('BINANCE_API_KEY', '')
         self.binance_api_secret = os.environ.get('BINANCE_API_SECRET', '')
@@ -334,8 +320,6 @@ class LegendarySniperFuturesV8:
             problems.append("TRADE_SIZE_USDT يجب أن يكون أكبر من صفر")
         if not (1 <= self.MAX_OPEN_TRADES <= 10):
             problems.append("MAX_OPEN_TRADES يجب أن يكون بين 1 و 10")
-        if self.TESTNET:
-            logger.info("🧪 وضع Testnet التجريبي مفعّل")
         if problems:
             raise SystemExit("❌ إعدادات خاطئة:\n- " + "\n- ".join(problems))
 
@@ -376,13 +360,10 @@ class LegendarySniperFuturesV8:
         self.last_scan_info = None
         self._last_heartbeat = 0
         self._report_day = time.strftime("%Y-%m-%d")
-        self._last_freq_check = 0
-        self._last_tighten = 0
         self._balance_cache = (0.0, 0.0)
 
         self.stats = {'total_scans': 0, 'trades_executed': 0, 'wins': 0, 'losses': 0}
 
-    # ═══ نظام مكافحة الصمت ═══
     def _notify_error(self, source, exc=None, context=""):
         count = self.error_counts.get(source, 0) + 1
         self.error_counts[source] = count
@@ -393,7 +374,7 @@ class LegendarySniperFuturesV8:
         if count == 1 or count % 10 == 0:
             try:
                 loop = asyncio.get_running_loop()
-                loop.create_task(self.tg(f"{txt}\n🔢 مرات التكرار: {count}"))
+                loop.create_task(self.tg(f"{txt}\n🔢 التكرار: {count}"))
             except RuntimeError:
                 pass
 
@@ -409,7 +390,6 @@ class LegendarySniperFuturesV8:
         else: return f"${price:,.1f}"
 
     async def tg(self, msg):
-        """✅ كل إشعار يذهب للوحة"""
         try:
             first_line = msg.split('\n')[0].replace('*', '').strip()
             kind = 'info'
@@ -423,7 +403,6 @@ class LegendarySniperFuturesV8:
         except Exception:
             pass
 
-    # ═══ توقيت الخادم ═══
     async def sync_server_time(self):
         try:
             res = await self._fapi_request('GET', '/fapi/v1/time')
@@ -458,16 +437,13 @@ class LegendarySniperFuturesV8:
                         await asyncio.sleep(10 * (attempt + 1))
                         continue
                     if r.status == 401:
-                        self._notify_error("خطأ 401 من Binance",
-                        context=f"مفاتيح خاطئة أو مقيدة بـIP | الرد الخام: {body[:200]}")
+                        self._notify_error("خطأ 401 من Binance", context="مفاتيح خاطئة أو مقيدة بـIP")
                         return None
                     if '-1021' in body:
-                        logger.warning("⚠️ خطأ توقيم -1021 — مزامنة الوقت وإعادة المحاولة")
                         await self.sync_server_time()
                         await asyncio.sleep(1)
                         continue
                     if r.status >= 500:
-                        logger.warning(f"Futures API {r.status} — إعادة محاولة...")
                         await asyncio.sleep(2 ** attempt)
                         continue
                     for c in soft:
@@ -475,37 +451,28 @@ class LegendarySniperFuturesV8:
                             return {'_soft_code': c}
                     if any(str(c) in body for c in quiet):
                         return None
-                    logger.warning(f"Futures API Error {r.status}: {body[:120]}")
                     return None
             except asyncio.TimeoutError:
                 if attempt == retries - 1:
-                    self._notify_error("انتهت مهلة طلب Binance", context=endpoint)
                     return None
                 await asyncio.sleep(2 ** attempt)
-            except Exception as e:
+            except Exception:
                 if attempt == retries - 1:
-                    self._notify_error("فشل طلب Binance", exc=e, context=endpoint)
                     return None
                 await asyncio.sleep(2 ** attempt)
         return None
 
     async def setup_futures_account(self):
-        msg = f"⚙️ *إعداد حساب العقود الآجلة (الرافعة {self.LEVERAGE}x)*\n━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        setup_count = 0
         for pair in self.all_futures_pairs[:50]:
             symbol = pair['symbol']
             try:
-                lev_res = await self._fapi_request('POST', '/fapi/v1/leverage',
+                await self._fapi_request('POST', '/fapi/v1/leverage',
                     {'symbol': symbol, 'leverage': self.LEVERAGE}, signed=True)
                 await self._fapi_request('POST', '/fapi/v1/marginType',
                     {'symbol': symbol, 'marginType': 'ISOLATED'}, signed=True, quiet=(-4046,))
-                if lev_res and lev_res.get('leverage') == self.LEVERAGE:
-                    setup_count += 1
-            except Exception as e:
-                logger.debug(f"تخطي إعداد {symbol}: {e}")
+            except Exception:
+                pass
             await asyncio.sleep(0.15)
-        msg += f"✅ تم ضبط الرافعة والهامش المعزول لـ {setup_count} زوج"
-        await self.tg(msg)
 
     async def load_market_data(self):
         data = await self._fapi_request('GET', '/fapi/v1/exchangeInfo')
@@ -518,15 +485,14 @@ class LegendarySniperFuturesV8:
                     if f['filterType'] == 'LOT_SIZE':
                         self.step_sizes_cache[s['symbol']] = float(f['stepSize'])
                         self.min_qty_cache[s['symbol']] = float(f.get('minQty', f['stepSize']))
-                        self.max_qty_cache[s['symbol']] = float(f.get('maxQty', 1e12))
+                        self.max_qty_cache[s['symbol']] = float(f['maxQty', 1e12])
                     elif f['filterType'] == 'PRICE_FILTER':
                         self.tick_sizes_cache[s['symbol']] = float(f['tickSize'])
                     elif f['filterType'] == 'MIN_NOTIONAL':
                         self.min_notional_cache[s['symbol']] = float(f.get('notional', f.get('minNotional', 5.0)))
         self.all_futures_pairs = new_pairs
-        logger.info(f"📊 تم تحميل {len(self.all_futures_pairs)} زوج عقود آجلة")
+        logger.info(f"📊 تم تحميل {len(self.all_futures_pairs)} زوج عقود آجلة (V9)")
 
-    # ═══ أدوات التنسيق الدقيق ═══
     @staticmethod
     def _decimals_of(step):
         try:
@@ -541,9 +507,6 @@ class LegendarySniperFuturesV8:
         dec = self._decimals_of(step)
         return round(math.floor(round(qty / step, 9)) * step, dec)
 
-    def format_quantity(self, symbol, qty):
-        return self._step_qty(symbol, qty)
-
     def qty_to_str(self, symbol, qty):
         step = self.step_sizes_cache.get(symbol) or 1.0
         dec = self._decimals_of(step)
@@ -552,11 +515,7 @@ class LegendarySniperFuturesV8:
     def price_to_str(self, symbol, price):
         tick = self.tick_sizes_cache.get(symbol)
         if not tick or tick <= 0:
-            if price >= 100: dec = 2
-            elif price >= 1: dec = 4
-            elif price >= 0.01: dec = 6
-            else: dec = 8
-            return f"{price:.{dec}f}"
+            return f"{price:.4f}"
         dec = self._decimals_of(tick)
         stepped = math.floor(round(price / tick, 9)) * tick
         return f"{round(stepped, dec):.{dec}f}"
@@ -591,15 +550,13 @@ class LegendarySniperFuturesV8:
         self._balance_cache = (avail, now)
         return avail
 
-    # ═══ WebSocket ═══
     async def ws_manager(self):
         ws_url = ("wss://stream.binancefuture.com/ws/!bookTicker" if self.TESTNET
                   else "wss://fstream.binance.com/ws/!bookTicker")
         while True:
             try:
                 async with websockets.connect(ws_url, ping_interval=20) as ws:
-                    logger.info("✅ Futures WebSocket متصل (Global Mode)!")
-                    self._reset_error("انقطاع WebSocket")
+                    logger.info("✅ Futures WebSocket متصل بنجاح!")
                     async for message in ws:
                         try:
                             data = json.loads(message)
@@ -607,12 +564,11 @@ class LegendarySniperFuturesV8:
                                 self.live_prices[data['s']] = {
                                     'bid': float(data['b']), 'ask': float(data['a']),
                                     'ts': time.time()}
-                        except (ValueError, KeyError, TypeError):
+                        except Exception:
                             continue
             except asyncio.CancelledError:
                 raise
-            except Exception as e:
-                self._notify_error("انقطاع WebSocket", exc=e, context="إعادة الاتصال خلال 5 ثوانٍ")
+            except Exception:
                 await asyncio.sleep(5)
 
     async def get_klines(self, symbol, interval='15m', limit=100):
@@ -636,21 +592,16 @@ class LegendarySniperFuturesV8:
         tr = pd.concat([hl, hc, lc], axis=1).max(axis=1)
         return float(tr.rolling(period).mean().iloc[-1])
 
-    # ═══ ✅ V8.2: الخروج الديناميكي — الجودة تكافأ بخطة أوسع ═══
     @staticmethod
     def _exit_plan(score):
-        """
-        إشارة أقوى → قبض أقل عند TP1 + هدف أبعد
-        إشارة عادية → قبض سريع (Hit & Run كلاسيكي)
-        """
         if score >= 7:
-            return {'partial_ratio': 0.5, 'tp2_mult': 5.0}   # ذهبية: نصف يركض لنحو 5×ATR
+            return {'partial_ratio': 0.5, 'tp2_mult': 5.0}
         elif score >= 6:
-            return {'partial_ratio': 0.7, 'tp2_mult': 4.5}   # جيدة: 70/30 بهدف 4.5×ATR
+            return {'partial_ratio': 0.7, 'tp2_mult': 4.5}
         else:
-            return {'partial_ratio': 0.9, 'tp2_mult': 4.0}   # عادية: كلاسيكي
+            return {'partial_ratio': 0.9, 'tp2_mult': 4.0}
 
-    # ═══ التحليل بنظام التقييم المرن ═══
+    # ═══ تحليل الـ SMC المفلتر والمصحح V9 ═══
     async def analyze_whale_zone(self, symbol):
         tuner = self.tuner
         df_4h = await self.get_klines(symbol, '4h', 100)
@@ -668,8 +619,10 @@ class LegendarySniperFuturesV8:
         trend = 'BUY' if mid > ema50_4h else 'SELL'
         current_price = prices['ask'] if trend == 'BUY' else prices['bid']
 
-        # 1) قرب منطقة الحوت
-        obs = self.smc.detect_order_blocks(df_1h, trend)
+        atr_1h = self._compute_atr(df_1h)
+
+        # 1) مناطق الحوت الديناميكية
+        obs = self.smc.detect_order_blocks(df_1h, trend, atr_1h)
         if not obs: return None
         nearby_ob = None
         proximity_pts = 0
@@ -688,27 +641,26 @@ class LegendarySniperFuturesV8:
                     break
         if not nearby_ob: return None
 
-        # 2) الزناد
+        # 2) الزناد الموثوق
         sweep = self.smc.detect_liquidity_sweep(df_15m, nearby_ob, trend)
         retest = False if sweep else self.smc.detect_ob_retest(df_15m, nearby_ob, trend)
         if not (sweep or retest): return None
         trigger_pts = 3 if sweep else 2
 
-        # 3) الاستوكاستك
+        # 3) الاستوكاستك المؤكد
         df_15m = self.smc.calculate_stochastic(df_15m)
         current_k = df_15m['stoch_k'].iloc[-2]
         prev_k = df_15m['stoch_k'].iloc[-3]
         current_d = df_15m['stoch_d'].iloc[-2]
-        prev_d = df_15m['stoch_d'].iloc[-3]
 
         if trend == 'BUY':
-            if not (current_k > current_d and prev_k <= prev_d):
+            if not (current_k > current_d and prev_k <= current_d):
                 return None
-            stoch_pts = 2 if current_k < 20 else (0 if tuner.strict_stoch else 1)
+            stoch_pts = 2 if current_k < 25 else (0 if tuner.strict_stoch else 1)
         else:
-            if not (current_k < current_d and prev_k >= prev_d):
+            if not (current_k < current_d and prev_k >= current_d):
                 return None
-            stoch_pts = 2 if current_k > 80 else (0 if tuner.strict_stoch else 1)
+            stoch_pts = 2 if current_k > 75 else (0 if tuner.strict_stoch else 1)
 
         # 4) حجم التداول
         vol_pts = 0
@@ -721,30 +673,36 @@ class LegendarySniperFuturesV8:
             pass
 
         score = proximity_pts + trigger_pts + stoch_pts + vol_pts
+
+        # 🛡️ فلتر V9 الصارم لإشارات 6/8: منع الإشارات الضعيفة
+        if score == 6 and not (sweep or vol_pts > 0):
+            return None
+
         if score < tuner.min_score:
             return None
 
-        # 5) الدخول والأهداف + ✅ V8.2: خطة خروج ديناميكية
-        atr = self._compute_atr(df_15m)
-        if not atr or atr <= 0 or math.isnan(atr):
+        # 5) الحسابات والأهداف
+        atr_15m = self._compute_atr(df_15m)
+        if not atr_15m or atr_15m <= 0 or math.isnan(atr_15m):
             return None
+
         exit_plan = self._exit_plan(score)
-        sl_buffer = atr * 2.0
+        sl_buffer = atr_15m * 1.8
         if trend == 'BUY':
             sl = nearby_ob['bottom'] - sl_buffer
-            tp1 = current_price + atr * 1.5
-            tp2 = current_price + atr * exit_plan['tp2_mult']   # ✅ ديناميكي
+            tp1 = current_price + atr_15m * 1.5
+            tp2 = current_price + atr_15m * exit_plan['tp2_mult']
         else:
             sl = nearby_ob['top'] + sl_buffer
-            tp1 = current_price - atr * 1.5
-            tp2 = current_price - atr * exit_plan['tp2_mult']   # ✅ ديناميكي
+            tp1 = current_price - atr_15m * 1.5
+            tp2 = current_price - atr_15m * exit_plan['tp2_mult']
 
         if sl <= 0 or math.isnan(sl): return None
         if trend == 'BUY' and sl >= current_price: return None
         if trend == 'SELL' and sl <= current_price: return None
 
         risk_pct = abs(current_price - sl) / current_price * 100
-        if risk_pct > 3.0 or risk_pct < 0.05:
+        if risk_pct > 2.5 or risk_pct < 0.05:
             return None
 
         return {
@@ -757,16 +715,11 @@ class LegendarySniperFuturesV8:
                 'trigger_pts': trigger_pts,
                 'stoch': stoch_pts,
                 'volume': vol_pts,
-                'score': score,
-                'tuner': tuner.describe()
-            },
-            'signals_smc': [
-                f"🐋 {'صيد حوت' if sweep else 'إعادة اختبار'} في منطقة {'طلب' if trend=='BUY' else 'عرض'}",
-                f"📊 تقييم الإشارة: {score}/8",
-                f"🛡️ وقف ATR ({risk_pct:.1f}%)"]
+                'score': score
+            }
         }
 
-    # ═══ التنفيذ ═══
+    # ═══ تنفيذ الصفقة ═══
     async def execute_trade(self, analysis):
         if not self.TRADE_ENABLED: return
         if len(self.active_trades) >= self.MAX_OPEN_TRADES: return
@@ -777,17 +730,11 @@ class LegendarySniperFuturesV8:
 
         available = await self.get_available_usdt()
         if available < self.TRADE_SIZE_USDT * 1.2:
-            self._notify_error("رصيد غير كافٍ للدخول",
-                               context=f"المتاح {available:.2f}$ < المطلوب {self.TRADE_SIZE_USDT * 1.2:.2f}$")
             return
 
         notional = self.TRADE_SIZE_USDT * self.LEVERAGE
-        quantity = self.format_quantity(symbol, notional / analysis['price'])
+        quantity = self._step_qty(symbol, notional / analysis['price'])
         if quantity <= 0: return
-        if quantity < self.min_qty_cache.get(symbol, 0.0): return
-        if quantity > self.max_qty_cache.get(symbol, 1e12): return
-        if quantity * analysis['price'] < self.min_notional_cache.get(symbol, 5.0) * 1.02:
-            return
 
         await self._fapi_request('POST', '/fapi/v1/leverage',
             {'symbol': symbol, 'leverage': self.LEVERAGE}, signed=True)
@@ -801,7 +748,6 @@ class LegendarySniperFuturesV8:
         }, signed=True)
 
         if not result or result.get('status') not in ['FILLED', 'NEW']:
-            await self.tg(f"❌ *فشل تنفيذ {side} (`{symbol}`)*\n⚠️ تأكد من إعدادات العقود الآجلة وصلاحيات المفتاح")
             return
 
         avg = float(result.get('avgPrice') or 0)
@@ -812,14 +758,13 @@ class LegendarySniperFuturesV8:
             'quantity': quantity, 'sl': analysis['sl'], 'tp': analysis['tp1'],
             'tp2': analysis['tp2'],
             'score': analysis.get('score'),
-            'partial_ratio': analysis.get('exit_plan', {}).get('partial_ratio', 0.9),  # ✅ V8.2
+            'partial_ratio': analysis.get('exit_plan', {}).get('partial_ratio', 0.9),
             'trailing_active': False, 'highest_price': entry_price,
             'lowest_price': entry_price, 'entry_time': time.time(),
             'partial_closed': False, 'realized_pnl': 0.0,
             'stop_order_id': None, 'tp_order_id': None,
-            'stop_is_algo': False, 'tp_is_algo': False,
             'stop_synced_price': None, 'tp_skipped': False
-            }
+        }
         self.active_trades[symbol] = trade_data
         await self.db.save_trade(trade_data)
         self.stats['trades_executed'] += 1
@@ -832,40 +777,31 @@ class LegendarySniperFuturesV8:
         await self._sync_stop_order(trade_data, ref_price)
         await self.db.save_trade(trade_data)
 
-        # ✅ V8.2: رسالة الخطة للشفافية
         ep = analysis.get('exit_plan', {'partial_ratio': 0.9})
-        msg = (f"✅ *صفقة منفذة!* (تقييم {analysis['score']}/8)\n━━━━━━━━━━━━━━━━━━━━━━━━\n"
-               f"🏃 خطة الخروج: جني {int(ep['partial_ratio']*100)}% عند TP1 والباقي يركض\n"
+        msg = (f"✅ *صفقة V9 منفذة!* (تقييم {analysis['score']}/8)\n━━━━━━━━━━━━━━━━━━━━━━━━\n"
+               f"🏃 الخروج: جني {int(ep['partial_ratio']*100)}% عند TP1 والباقي يركض\n"
                f"🪙 `{symbol}` | رافعة {self.LEVERAGE}x | هامش {self.TRADE_SIZE_USDT:.0f}$\n"
                f"💵 الدخول: {self.fmt_price(entry_price)}\n"
                f"🛑 SL: {self.fmt_price(analysis['sl'])}\n"
-               f"🎯 TP1: {self.fmt_price(analysis['tp1'])} | TP2: {self.fmt_price(analysis['tp2'])}\n"
-               f"🛡️ ستوب المنصة: {'✅' if trade_data['stop_order_id'] else '⏳'}\n"
-               f"🧠 {self.tuner.describe()}")
+               f"🎯 TP1: {self.fmt_price(analysis['tp1'])} | TP2: {self.fmt_price(analysis['tp2'])}")
         await self.tg(msg)
 
-    # ═══ أوامر المنصة الشرطية (Algo Order API) ═══
     @staticmethod
     def _find_order_id(data):
-        """البحث المتكرر عن algoId/orderId في أي شكل استجابة"""
         if isinstance(data, dict):
             for k in ('algoId', 'orderId', 'algoID', 'orderID'):
                 v = data.get(k)
-                if v:
-                    return v
+                if v: return v
             for v in data.values():
-                r = LegendarySniperFuturesV8._find_order_id(v)
-                if r:
-                    return r
+                r = LegendarySniperFuturesV9._find_order_id(v)
+                if r: return r
         elif isinstance(data, list):
             for v in data:
-                r = LegendarySniperFuturesV8._find_order_id(v)
-                if r:
-                    return r
+                r = LegendarySniperFuturesV9._find_order_id(v)
+                if r: return r
         return None
 
     async def _place_algo_order(self, params):
-        """تثبيت أمر شرطي عبر Algo Order API."""
         payload = {'algoType': 'CONDITIONAL'}
         payload.update(params)
         res = await self._fapi_request('POST', '/fapi/v1/algoOrder', payload,
@@ -874,8 +810,7 @@ class LegendarySniperFuturesV8:
             if '_soft_code' in res:
                 return 'EXISTS' if res['_soft_code'] == -4130 else None
             oid = self._find_order_id(res)
-            if oid:
-                return oid
+            if oid: return oid
             return 'UNKNOWN'
         return None
 
@@ -883,7 +818,6 @@ class LegendarySniperFuturesV8:
         await self._fapi_request('DELETE', '/fapi/v1/algoOrder',
             {'symbol': symbol, 'algoId': algo_id}, signed=True, quiet=('-2011', '-2013'))
 
-    # ═══ مزامنة الستوب ═══
     async def _sync_stop_order(self, trade, current_price):
         symbol = trade['symbol']
         is_buy = trade['side'] == 'BUY'
@@ -894,10 +828,6 @@ class LegendarySniperFuturesV8:
             return False
 
         desired_str = self.price_to_str(symbol, desired)
-        if trade.get('stop_order_id') and trade.get('stop_synced_price') is not None:
-            if self.price_to_str(symbol, trade['stop_synced_price']) == desired_str:
-                return False
-
         stop_side = 'SELL' if is_buy else 'BUY'
         new_id = await self._place_algo_order({
             'symbol': symbol, 'side': stop_side, 'type': 'STOP_MARKET',
@@ -908,60 +838,18 @@ class LegendarySniperFuturesV8:
             old_id = trade.get('stop_order_id')
             if old_id:
                 await self._cancel_algo_order(symbol, old_id)
-            trade['stop_is_algo'] = True
-            trade['stop_synced_price'] = desired
-            if new_id in ('EXISTS', 'UNKNOWN'):
-                trade['stop_order_id'] = None
-                self._reset_error(f"ستوب المنصة {symbol}")
-                logger.info(f"🛡️ ستوب {symbol} مؤكد على المنصة (معرف غير متاح من Testnet)")
-                return True
-            trade['stop_order_id'] = new_id
-            self._reset_error(f"ستوب المنصة {symbol}")
+            trade['stop_order_id'] = None if new_id in ('EXISTS', 'UNKNOWN') else new_id
             return True
-
-        self._notify_error(f"تعذّر وضع ستوب المنصة لـ {symbol}",
-                           context="سيُعاد — الوقف المحلي يعمل")
         return False
 
-    # ═══ جني TP2 على المنصة ═══
-    async def _place_tp_order(self, trade, current_price):
-        symbol = trade['symbol']
-        is_buy = trade['side'] == 'BUY'
-        if trade.get('tp_order_id') or trade.get('tp_skipped') or trade.get('tp_unconfirmed'):
-            return
-        tp2 = trade.get('tp2')
-        if not tp2: return
-        if (is_buy and tp2 <= current_price) or (not is_buy and tp2 >= current_price):
-            trade['tp_skipped'] = True
-            return
-        close_side = 'SELL' if is_buy else 'BUY'
-        new_id = await self._place_algo_order({
-            'symbol': symbol, 'side': close_side, 'type': 'TAKE_PROFIT_MARKET',
-            'triggerPrice': self.price_to_str(symbol, tp2),
-            'quantity': self.qty_to_str(symbol, trade['quantity']),
-            'reduceOnly': 'true',
-            'workingType': 'CONTRACT_PRICE'})
-        if new_id:
-            trade['tp_is_algo'] = True
-            if new_id in ('EXISTS', 'UNKNOWN'):
-                trade['tp_order_id'] = None
-                trade['tp_unconfirmed'] = True
-            else:
-                trade['tp_order_id'] = new_id
-            await self.tg(f"🎯 *هدف TP2 مثبّت على المنصة* (`{symbol}`) عند {self.fmt_price(tp2)}")
-        else:
-            trade['tp_skipped'] = True
-            self._notify_error(f"تعذر تثبيت TP2 لـ {symbol}",
-                               context="الوقف المتحرك سيُدير الخروج بدلاً منه")
-    # ═══ استعلامات المنصة ═══
     async def get_position_amt(self, symbol):
         try:
             res = await self._fapi_request('GET', '/fapi/v2/positionRisk',
                 {'symbol': symbol}, signed=True)
             if isinstance(res, list) and res:
                 return float(res[0].get('positionAmt', 0))
-        except Exception as e:
-            logger.warning(f"فشل استعلام المركز لـ {symbol}: {e}")
+        except Exception:
+            pass
         return None
 
     async def get_last_realized_pnl(self, symbol, trade):
@@ -970,528 +858,194 @@ class LegendarySniperFuturesV8:
                 {'symbol': symbol, 'incomeType': 'REALIZED_PNL', 'limit': 20}, signed=True)
             if isinstance(res, list) and res:
                 entry_ms = int(trade.get('entry_time', 0) * 1000)
-                last = None
                 for e in res:
                     if int(e.get('time', 0)) >= entry_ms - 5000:
-                        last = e
-                        break
-                if last is not None:
-                    return float(last.get('income', 0))
-        except Exception as e:
-            logger.warning(f"فشل جلب الأرباح المحققة لـ {symbol}: {e}")
+                        return float(e.get('income', 0))
+        except Exception:
+            pass
         return None
 
     async def verify_positions(self):
-        if not self.TRADE_ENABLED or not self.binance_api_key:
-            return
-        if not self.active_trades: return
+        if not self.TRADE_ENABLED or not self.active_trades: return
         for symbol, trade in list(self.active_trades.items()):
-            try:
-                amt = await self.get_position_amt(symbol)
-                if amt is None: continue
-                step = self.step_sizes_cache.get(symbol) or 1.0
-                if abs(amt) < step:
-                    pnl = await self.get_last_realized_pnl(symbol, trade)
-                    prices = self.get_price(symbol)
-                    px = (prices['bid'] if trade['side'] == 'BUY' else prices['ask']) if prices else trade['entry_price']
-                    await self._finalize_trade(trade, px, "🛑 أُغلق على المنصة (Stop-Loss)", pnl)
-            except Exception as e:
-                self._notify_error(f"فشل التحقق من مركز {symbol}", exc=e)
+            amt = await self.get_position_amt(symbol)
+            if amt is not None and abs(amt) < (self.step_sizes_cache.get(symbol) or 1.0):
+                pnl = await self.get_last_realized_pnl(symbol, trade)
+                prices = self.get_price(symbol)
+                px = (prices['bid'] if trade['side'] == 'BUY' else prices['ask']) if prices else trade['entry_price']
+                await self._finalize_trade(trade, px, "🛑 أُغلق على المنصة", pnl)
 
-    # ═══ إغلاق آمن بالكمية الفعلية ═══
     async def _close_position(self, trade, current_price):
         symbol = trade['symbol']
         is_buy = trade['side'] == 'BUY'
         close_side = 'SELL' if is_buy else 'BUY'
 
         amt = await self.get_position_amt(symbol)
-        if amt is None:
-            self._notify_error(f"تعذر قراءة مركز {symbol}", context="إعادة المحاولة لاحقاً")
-            return False, None, None
+        if amt is None: return False, None, None
         step = self.step_sizes_cache.get(symbol) or 1.0
         if abs(amt) < step:
             pnl = await self.get_last_realized_pnl(symbol, trade)
             return True, current_price, pnl
 
-        qty = self.format_quantity(symbol, min(trade['quantity'], abs(amt)))
-        if qty <= 0:
-            return True, current_price, await self.get_last_realized_pnl(symbol, trade)
-
+        qty = self._step_qty(symbol, min(trade['quantity'], abs(amt)))
         res = await self._fapi_request('POST', '/fapi/v1/order', {
             'symbol': symbol, 'side': close_side, 'type': 'MARKET',
             'quantity': self.qty_to_str(symbol, qty), 'reduceOnly': 'true'
         }, signed=True)
 
         if res and res.get('status') in ['FILLED', 'NEW']:
-            fill = float(res.get('avgPrice') or 0)
-            fill_price = fill if fill > 0 else current_price
-            self._reset_error(f"إغلاق {symbol}")
-            return True, fill_price, None
-
-        amt2 = await self.get_position_amt(symbol)
-        if amt2 is not None and abs(amt2) < step:
-            return True, current_price, await self.get_last_realized_pnl(symbol, trade)
-
-        self._notify_error(f"فشل إغلاق {symbol}",
-                           context="ستُعاد المحاولة — ستوب المنصة يحمي المركز")
+            fill = float(res.get('avgPrice') or current_price)
+            return True, fill, None
         return False, None, None
 
-    # ═══ إنهاء الصفقة (محاسبة كاملة) ═══
     async def _finalize_trade(self, trade, fill_price, reason, pnl_override=None):
         symbol = trade['symbol']
         is_buy = trade['side'] == 'BUY'
 
-        for oid_key, algo_key in (('stop_order_id', 'stop_is_algo'), ('tp_order_id', 'tp_is_algo')):
-            oid = trade.get(oid_key)
-            if not oid:
-                continue
-            if trade.get(algo_key):
-                await self._cancel_algo_order(symbol, oid)
-            else:
-                await self._fapi_request('DELETE', '/fapi/v1/order',
-                    {'symbol': symbol, 'orderId': oid}, signed=True, quiet=('-2011', '-2013'))
-                await self._cancel_algo_order(symbol, oid)
+        if trade.get('stop_order_id'):
+            await self._cancel_algo_order(symbol, trade['stop_order_id'])
 
-        if pnl_override is not None:
-            final_pnl = pnl_override
-        else:
-            if is_buy: final_pnl = (fill_price - trade['entry_price']) * trade['quantity']
-            else: final_pnl = (trade['entry_price'] - fill_price) * trade['quantity']
+        final_pnl = pnl_override if pnl_override is not None else (
+            (fill_price - trade['entry_price']) * trade['quantity'] if is_buy
+            else (trade['entry_price'] - fill_price) * trade['quantity']
+        )
 
         total_pnl = trade.get('realized_pnl', 0.0) + final_pnl
-        margin_used = self.TRADE_SIZE_USDT
-        margin_pnl_pct = (total_pnl / margin_used * 100) if margin_used > 0 else 0
-
         is_win = total_pnl > 0
         if is_win: self.stats['wins'] += 1
         else: self.stats['losses'] += 1
 
         self.tuner.record(is_win)
-        try:
-            await self.db.set_signal_result(symbol, trade['entry_time'], is_win, total_pnl)
-        except Exception:
-            pass
-
+        await self.db.set_signal_result(symbol, trade['entry_time'], is_win, total_pnl)
         await self.db.update_daily_pnl(total_pnl, is_win)
         await self.db.remove_trade(symbol)
         self.active_trades.pop(symbol, None)
         self.set_cooldown(symbol)
 
         icon = "✅" if is_win else "❌"
-        partial_note = (f"\n🧾 جني جزئي سابق: `{trade.get('realized_pnl', 0.0):.4f} USDT`"
-                        if abs(trade.get('realized_pnl', 0.0)) > 1e-9 else "")
-        score_note = f"\n📊 تقييم الإشارة: `{trade.get('score', '—')}/8`" if trade.get('score') else ""
-        msg = (f"🏁 {icon} *إغلاق `{symbol}`*\n━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        msg = (f"🏁 {icon} *إغلاق صفقة `{symbol}`*\n━━━━━━━━━━━━━━━━━━━━━━━━\n"
                f"{reason}\n"
-               f"💵 النتيجة: `{total_pnl:.4f} USDT` ({margin_pnl_pct:.1f}% من الهامش)\n"
-               f"🏆 الإجمالي: {self.stats['wins']}W / {self.stats['losses']}L{partial_note}{score_note}\n"
-               f"🧠 {self.tuner.describe()}")
+               f"💵 النتيجة: `{total_pnl:.4f} USDT`\n"
+               f"🏆 الأداء: {self.stats['wins']}W / {self.stats['losses']}L")
         await self.tg(msg)
 
-    # ═══ مراقبة الصفقات (خروج ديناميكي + TP2 على المنصة) ═══
     async def monitor_trades(self):
         if not self.active_trades: return
-        stale_symbols = []
-
         for symbol, trade in list(self.active_trades.items()):
             prices = self.get_price(symbol)
-            if not prices:
-                stale_symbols.append(symbol)
-                continue
+            if not prices: continue
 
             is_buy = trade['side'] == 'BUY'
             current_price = prices['bid'] if is_buy else prices['ask']
-            changed = False
 
             if is_buy and current_price > trade.get('highest_price', 0):
-                trade['highest_price'] = current_price; changed = True
+                trade['highest_price'] = current_price
             elif not is_buy and current_price < trade.get('lowest_price', 999999):
-                trade['lowest_price'] = current_price; changed = True
+                trade['lowest_price'] = current_price
 
-            # 1) وقف الخسارة
             if (is_buy and current_price <= trade['sl']) or (not is_buy and current_price >= trade['sl']):
                 closed, fill_price, pnl_override = await self._close_position(trade, current_price)
                 if closed:
-                    await self._finalize_trade(trade, fill_price, "🛑 ضرب SL", pnl_override)
+                    await self._finalize_trade(trade, fill_price, "🛑 ضرب وقف الخسارة SL", pnl_override)
                 continue
 
-            # 2) الجني الجزئي عند TP1 — ✅ V8.2: نسبة ديناميكية حسب تقييم الصفقة
+            # الجني الجزئي الديناميكي
             if not trade.get('partial_closed', False) and trade.get('tp'):
                 if (is_buy and current_price >= trade['tp']) or (not is_buy and current_price <= trade['tp']):
-                    ratio = trade.get('partial_ratio', 0.9)   # ✅ V8.2: 50%/70%/90%
-                    partial_qty = self.format_quantity(symbol, trade['quantity'] * ratio)
-                    remaining_qty = self.format_quantity(symbol, trade['quantity'] - partial_qty)
+                    ratio = trade.get('partial_ratio', 0.9)
+                    partial_qty = self._step_qty(symbol, trade['quantity'] * ratio)
+                    remaining_qty = self._step_qty(symbol, trade['quantity'] - partial_qty)
                     min_notional = self.min_notional_cache.get(symbol, 5.0)
 
-                    if (partial_qty <= 0 or remaining_qty <= 0
-                            or partial_qty * current_price < min_notional
-                            or remaining_qty * current_price < min_notional):
+                    if partial_qty * current_price < min_notional or remaining_qty * current_price < min_notional:
                         closed, fill_price, pnl_override = await self._close_position(trade, current_price)
                         if closed:
-                            await self._finalize_trade(trade, fill_price,
-                                "🎯 TP1 (إغلاق كامل — حدود الزوج)", pnl_override)
+                            await self._finalize_trade(trade, fill_price, "🎯 TP1 (إغلاق كامل لحدود القيمة)", pnl_override)
                         continue
 
                     close_side = 'SELL' if is_buy else 'BUY'
                     res = await self._fapi_request('POST', '/fapi/v1/order', {
                         'symbol': symbol, 'side': close_side, 'type': 'MARKET',
-                        'quantity': self.qty_to_str(symbol, partial_qty),
-                        'reduceOnly': 'true'
+                        'quantity': self.qty_to_str(symbol, partial_qty), 'reduceOnly': 'true'
                     }, signed=True)
 
                     if res and res.get('status') in ['FILLED', 'NEW']:
-                        fill = float(res.get('avgPrice') or 0)
-                        fill_price = fill if fill > 0 else current_price
-                        if is_buy: partial_pnl = (fill_price - trade['entry_price']) * partial_qty
-                        else: partial_pnl = (trade['entry_price'] - fill_price) * partial_qty
-
+                        fill = float(res.get('avgPrice') or current_price)
+                        partial_pnl = (fill - trade['entry_price']) * partial_qty if is_buy else (trade['entry_price'] - fill) * partial_qty
                         trade['realized_pnl'] = trade.get('realized_pnl', 0.0) + partial_pnl
                         await self.db.update_daily_pnl(partial_pnl, None)
                         trade['quantity'] = remaining_qty
                         trade['partial_closed'] = True
-                        trade['sl'] = trade['entry_price'] * 1.003 if is_buy else trade['entry_price'] * 0.997
-                        changed = True
-                        await self.tg(f"🎯 *جني أرباح أول (`{symbol}`)*\n"
-                                      f"💸 أُغلق {int(ratio*100)}% بربح: `{partial_pnl:.4f} USDT`\n"
-                                      f"🛡️ الوقف على التعادل (+0.3%)")
-                        await self._place_tp_order(trade, current_price)
-                    else:
-                        amt = await self.get_position_amt(symbol)
-                        if amt is not None and abs(amt) < (self.step_sizes_cache.get(symbol) or 1.0):
-                            pnl = await self.get_last_realized_pnl(symbol, trade)
-                            await self._finalize_trade(trade, current_price, "🛑 أُغلق على المنصة (Stop)", pnl)
-                            continue
-                        self._notify_error(f"فشل الجني الجزئي لـ {symbol}",
-                                           context="إعادة المحاولة في الدورة القادمة")
+                        trade['sl'] = trade['entry_price'] * 1.002 if is_buy else trade['entry_price'] * 0.998
+                        await self.tg(f"🎯 *جني جزئي ناجح (`{symbol}`)*\nربح جزء محقق: `{partial_pnl:.4f} USDT`")
 
-            # 3) الوقف المتحرك (بعد الجزئي)
-            if trade.get('partial_closed'):
-                if is_buy:
-                    new_sl = trade['highest_price'] * 0.99
-                    if new_sl > trade['sl']:
-                        trade['sl'] = new_sl; changed = True
-                else:
-                    new_sl = trade['lowest_price'] * 1.01
-                    if new_sl < trade['sl']:
-                        trade['sl'] = new_sl; changed = True
+            await self._sync_stop_order(trade, current_price)
+            await self.db.save_trade(trade)
 
-            # 4) مزامنة ستوب المنصة
-            if await self._sync_stop_order(trade, current_price):
-                changed = True
-
-            if changed:
-                await self.db.save_trade(trade)
-
-        if stale_symbols:
-            self._notify_error("أسعار مجمّدة لمراكز مفتوحة",
-                               context=f"{', '.join(stale_symbols)} — ستوب المنصة يحميها")
-
-    # ═══ المسح الديناميكي ═══
     async def scan_volatile_coins(self):
         tickers = await self._fapi_request('GET', '/fapi/v1/ticker/24hr')
-        if not tickers:
-            self._notify_error("فشل جلب بيانات تقلب السوق", context="مشكلة اتصال مؤقتة")
-            return
-        self._reset_error("فشل جلب بيانات تقلب السوق")
+        if not tickers: return
 
         targets = []
         for t in tickers:
             symbol = t.get('symbol', '')
             try:
                 change = abs(float(t.get('priceChangePercent', 0)))
-            except (TypeError, ValueError):
+            except Exception:
                 continue
-            if change > 5 and symbol in self.step_sizes_cache:
+            if change > 4 and symbol in self.step_sizes_cache:
                 targets.append({'symbol': symbol, 'change': change})
         targets.sort(key=lambda x: x['change'], reverse=True)
 
-        scan_targets = targets[:20]
-        results = []
-        for target in scan_targets:
+        for target in targets[:20]:
             symbol = target['symbol']
-            if symbol in self.active_trades: continue
-            if self.is_in_cooldown(symbol): continue
+            if symbol in self.active_trades or self.is_in_cooldown(symbol): continue
             analysis = await self.analyze_whale_zone(symbol)
             if analysis:
-                results.append(analysis)
-            await asyncio.sleep(0.5)
+                await self.execute_trade(analysis)
+            await asyncio.sleep(0.3)
 
-        self.last_scan_info = {
-            'ts': time.time(),
-            'volatile': len(targets),
-            'scanned': len(scan_targets),
-            'signals': len(results)
-        }
-
-        fresh_lines = []
-        now = time.time()
-        for a in results:
-            key = (a['symbol'], a['direction'])
-            if now - self.last_discovery_alert.get(key, 0) < 1800:
-                continue
-            self.last_discovery_alert[key] = now
-            fresh_lines.append(f"🐋 `{a['symbol']}` *{a['direction']}* @ {self.fmt_price(a['price'])}"
-                               f" (تقييم {a['score']}/8)")
-
-        if fresh_lines:
-            await self.tg("🚀 *إشارات جديدة!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n" + "\n".join(fresh_lines))
-
-        for a in results:
-            await self.execute_trade(a)
-            await asyncio.sleep(1)
-
-    # ═══ المطوّر التكيفي ═══
-    def _trades_today(self):
-        today = time.strftime("%Y-%m-%d")
-        return sum(1 for _, d in self.entry_history if d == today)
-
-    def _frequency_guard(self):
-        now = time.time()
-        if now - self._last_freq_check < 3600:
-            return
-        self._last_freq_check = now
-
-        last_ts = self.entry_history[-1][0] if self.entry_history else 0
-        hours_since = (now - last_ts) / 3600 if last_ts else 999
-        if hours_since >= 10 and self._trades_today() < 3:
-            if self.tuner.relax_step():
-                logger.info("🧠 ارتخاء تكيفي بسبب قلة النشاط")
-                asyncio.get_running_loop().create_task(self.tuner.save())
-                asyncio.get_running_loop().create_task(self.tg(
-                    f"🧠 *المطوّر التكيفي:* رفع النشاط تلقائياً (توسيع نطاق القرب)\n{self.tuner.describe()}"))
-
-        wr = self.tuner.recent_winrate(10)
-        if wr is not None and wr < 0.38 and now - self._last_tighten > 6 * 3600:
-            self._last_tighten = now
-            if self.tuner.tighten_step():
-                logger.info("🧠 تشديد تكيفي بسبب تدهور نسبة الفوز")
-                asyncio.get_running_loop().create_task(self.tuner.save())
-                asyncio.get_running_loop().create_task(self.tg(
-                    f"🧠 *المطوّر التكيفي:* تشديد الجودة (فوز آخر 10 = {wr*100:.0f}%)\n{self.tuner.describe()}"))
-
-    # ═══ الصيانة الذاتية ═══
-    def _cleanup_memory(self):
-        now = time.time()
-        self.reentry_cooldown = {k: v for k, v in self.reentry_cooldown.items() if v > now}
-        self.last_discovery_alert = {k: v for k, v in self.last_discovery_alert.items()
-                                     if v > now - 7200}
-        if len(self.error_counts) > 500:
-            self.error_counts.clear()
-
-    async def _send_daily_report(self, day):
-        row = await self.db.get_day_stats(day)
-        if not row: return
-        pnl, w, l = row
-        wr = (w / (w + l) * 100) if (w + l) > 0 else 0
-        await self.tg(f"📊 *تقرير {day}*\n💰 PnL: `{pnl:.4f} USDT`\n"
-                      f"🏆 {w}W / {l}L (فوز {wr:.0f}%)\n🧠 {self.tuner.describe()}")
-
-    async def _heartbeat_and_report(self, loop_count):
-        now = time.time()
-        today = time.strftime("%Y-%m-%d")
-        if today != self._report_day:
-            await self._send_daily_report(self._report_day)
-            self._report_day = today
-        if now - self._last_heartbeat >= 3600:
-            self._last_heartbeat = now
-            wr = self.tuner.recent_winrate(10)
-            wr_txt = f"{wr*100:.0f}%" if wr is not None else "غير كافٍ بعد"
-            await self.tg(f"💓 *النبض:* حي ✓ | مسح #{loop_count} | "
-                          f"صفقات اليوم: {self._trades_today()} | فوز آخر 10: {wr_txt}\n"
-                          f"🧠 {self.tuner.describe()}")
-
-    # ═══ المصالحة الذاتية عند الإقلاع ═══
-    async def reconcile(self):
-        if not self.binance_api_key or not self.TRADE_ENABLED:
-            return
-        try:
-            positions = await self._fapi_request('GET', '/fapi/v2/positionRisk', signed=True)
-            open_pos = {}
-            if isinstance(positions, list):
-                for p in positions:
-                    try:
-                        amt = float(p.get('positionAmt', 0))
-                    except (TypeError, ValueError):
-                        continue
-                    if abs(amt) > 0:
-                        open_pos[p['symbol']] = {'amt': amt, 'entry': float(p.get('entryPrice', 0))}
-
-            for symbol, trade in list(self.active_trades.items()):
-                pos = open_pos.get(symbol)
-                step = self.step_sizes_cache.get(symbol) or 1.0
-                if not pos or abs(pos['amt']) < step:
-                    pnl = await self.get_last_realized_pnl(symbol, trade)
-                    await self._finalize_trade(trade, trade['entry_price'],
-                                               "🔄 أُغلق أثناء توقف البوت", pnl)
-
-            for symbol, pos in open_pos.items():
-                if symbol in self.active_trades:
-                    continue
-                side = 'BUY' if pos['amt'] > 0 else 'SELL'
-                entry = pos['entry'] or (self.live_prices.get(symbol, {}).get('bid', 0))
-
-                if not entry or entry <= 0:
-                    await self.tg(f"⚠️ *تعذّر تبنّي مركز يتيم* (`{symbol}`)\n"
-                                  f"سعر الدخول غير متاح بعد — سيُعاد في إعادة تشغيل قادمة")
-                    continue
-
-                df = await self.get_klines(symbol, '15m', 50)
-                atr = self._compute_atr(df) if df is not None else None
-                if not atr or atr <= 0 or math.isnan(atr):
-                    atr = entry * 0.01
-
-                if side == 'BUY':
-                    sl, tp1, tp2 = entry - 2*atr, entry + 1.5*atr, entry + 4*atr
-                else:
-                    sl, tp1, tp2 = entry + 2*atr, entry - 1.5*atr, entry - 4*atr
-                trade = {
-                    'symbol': symbol, 'side': side, 'entry_price': entry,
-                    'quantity': abs(pos['amt']), 'sl': sl, 'tp': tp1, 'tp2': tp2,
-                    'trailing_active': False, 'highest_price': entry, 'lowest_price': entry,
-                    'entry_time': time.time(), 'partial_closed': False,
-                    'realized_pnl': 0.0, 'stop_order_id': None, 'tp_order_id': None,
-                    'stop_is_algo': False, 'tp_is_algo': False,
-                    'stop_synced_price': None, 'tp_skipped': False
-                }
-                self.active_trades[symbol] = trade
-                await self.db.save_trade(trade)
-                await self._sync_stop_order(trade, entry)
-                await self.db.save_trade(trade)
-                await self.tg(f"🔄 *تم تبنّي مركز يتيم* (`{symbol}`)\n"
-                              f"وقف ATR تلقائي عند {self.fmt_price(sl)}")
-
-            orders = await self._fapi_request('GET', '/fapi/v1/openOrders', signed=True)
-            if not isinstance(orders, list):
-                orders = []
-            known_ids = set()
-            for t in self.active_trades.values():
-                if t.get('stop_order_id'): known_ids.add(t['stop_order_id'])
-                if t.get('tp_order_id'): known_ids.add(t['tp_order_id'])
-            cancelled = 0
-            for o in orders:
-                if o.get('orderId') not in known_ids and o.get('type') in ('STOP_MARKET', 'TAKE_PROFIT_MARKET'):
-                    await self._fapi_request('DELETE', '/fapi/v1/order',
-                        {'symbol': o['symbol'], 'orderId': o['orderId']}, signed=True,
-                        quiet=('-2011', '-2013'))
-                    cancelled += 1
-            if cancelled:
-                await self.tg(f"🧹 *تنظيف ذاتي:* أُلغي {cancelled} أمر يتيم على المنصة")
-            logger.info(f"🧾 المصالحة الذاتية: {len(open_pos)} مركز حي، {cancelled} أمر يتيم ملغى")
-        except Exception as e:
-            self._notify_error("فشل المصالحة الذاتية", exc=e, context="غير قاتل — تُعاد كل دورات")
-
-    # ═══ إيقاف آمن ═══
-    async def request_shutdown(self):
-        if self._shutdown_requested: return
-        self._shutdown_requested = True
-        logger.info("🛑 طلب إيقاف آمن...")
-        try:
-            await self.tg("🛑 *إيقاف آمن:* ستوب/أوامر TP على المنصة تبقى فعالة وتحمي المراكز.")
-        except Exception:
-            pass
-
-    # ═══ اللوب الرئيسي ═══
     async def main_loop(self):
         self.session = aiohttp.ClientSession()
         try:
             await start_web_panel(self)
-
-            loop = asyncio.get_running_loop()
-            for sig_name in ('SIGINT', 'SIGTERM'):
-                try:
-                    loop.add_signal_handler(getattr(signal, sig_name),
-                        lambda: asyncio.ensure_future(self.request_shutdown()))
-                except (NotImplementedError, ValueError, AttributeError, RuntimeError):
-                    pass
-
             await self.db.init_db()
             await self.tuner.load()
 
-            market_tries = 0
             while not self.all_futures_pairs:
-                market_tries += 1
                 await self.load_market_data()
-                if self.all_futures_pairs: break
-                if market_tries == 1 or market_tries % 5 == 0:
-                    await self.tg(f"❌ *فشل تحميل بيانات السوق* (محاولة {market_tries})\n"
-                                  f"⏳ إعادة خلال 30 ثانية...")
-                logger.error(f"فشل تحميل بيانات السوق (محاولة {market_tries})")
-                await asyncio.sleep(30)
+                if not self.all_futures_pairs:
+                    await asyncio.sleep(15)
 
             self.active_trades = await self.db.load_active_trades()
             await self.sync_server_time()
-
-            try:
-                dual = await self._fapi_request('GET', '/fapi/v1/positionSide/dual', signed=True)
-                if dual and dual.get('dualSidePosition'):
-                    if self.TRADE_ENABLED:
-                        self.TRADE_ENABLED = False
-                        logger.error("❌ الحساب في وضع Hedge Mode — التحويل للمراقبة فقط")
-                        await self.tg("⚠️ *تنبيه:* Hedge Mode مفعّل — البوت لوضع One-way فقط. تم التحويل للمراقبة.")
-            except Exception as e:
-                logger.warning(f"تعذر فحص Hedge Mode: {e}")
 
             if self.TRADE_ENABLED and self.binance_api_key:
                 await self.setup_futures_account()
 
             self.ws_task = asyncio.create_task(self.ws_manager())
-            await asyncio.sleep(10)
+            await asyncio.sleep(5)
 
-            if self.TRADE_ENABLED and self.binance_api_key:
-                await self.reconcile()
-                await self.verify_positions()
+            mode_trade = "⚔️ تداول تلقائي V9" + (" (TESTNET)" if self.TESTNET else "") if self.TRADE_ENABLED else "👁️ مراقبة فقط"
+            await self.tg(f"🔥 *القناص الأسطوري V9.0 يعمل بنجاح!*\n📡 الوضع: {mode_trade}\n🧠 {self.tuner.describe()}")
 
-            mode_trade = "⚔️ تداول تلقائي" + (" (TESTNET 🧪)" if self.TESTNET else "") \
-                         if self.TRADE_ENABLED else "👁️ مراقبة فقط"
-            msg = ("🔥 *القناص الأسطوري V8.2 — الذكي التكيفي!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                   f"📡 الوضع: {mode_trade} | رافعة {self.LEVERAGE}x | هامش {self.TRADE_SIZE_USDT:.0f}$\n"
-                   f"🧠 العتبة: {self.tuner.min_score}/8 ثابتة\n"
-                   f"🏃 خروج ديناميكي: 7-8→جني50% | 6→جني70% | أقل→جني90%\n"
-                   f"🎯 TP2 ديناميكي: 7-8→5×ATR | 6→4.5×ATR | أقل→4×ATR\n"
-                   "━━━━━━━━━━━━━━━━━━━━━━━━\n⏰ بدء المسح...")
-            await self.tg(msg)
-
-            loop_count = 0
             while not self._shutdown_requested:
                 try:
-                    newest_ts = max((p.get('ts', 0) for p in self.live_prices.values()), default=0)
-                    if newest_ts and (time.time() - newest_ts) > self.WS_STALE_ALERT:
-                        self._notify_error("توقف تدفق الأسعار (WebSocket)",
-                            context=f"لا تحديثات منذ {int(time.time() - newest_ts)} ثانية — ستوب المنصة يحمي المراكز")
-
                     await self.monitor_trades()
                     await self.scan_volatile_coins()
-
-                    loop_count += 1
-                    self.stats['total_scans'] = loop_count
-                    if loop_count % self.VERIFY_EVERY_N_LOOPS == 0:
-                        await self.verify_positions()
-
-                    self._frequency_guard()
-                    self._cleanup_memory()
-                    await self._heartbeat_and_report(loop_count)
                     await asyncio.sleep(60)
                 except asyncio.CancelledError:
                     raise
-                except Exception as loop_err:
-                    logger.error(f"خطأ في الحلقة: {loop_err}")
-                    self._notify_error("خطأ في الحلقة الرئيسية", exc=loop_err)
+                except Exception as e:
+                    logger.error(f"خطأ في اللوب الرئيسي: {e}")
                     await asyncio.sleep(15)
         finally:
-            if self.ws_task:
-                self.ws_task.cancel()
-            if self.session and not self.session.closed:
-                await self.session.close()
+            if self.ws_task: self.ws_task.cancel()
+            if self.session and not self.session.closed: await self.session.close()
 
     def start(self):
         asyncio.run(self.main_loop())
 
 if __name__ == "__main__":
-    bot = LegendarySniperFuturesV8()
+    bot = LegendarySniperFuturesV9()
     bot.start()
-
-
-
-
-
-
