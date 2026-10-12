@@ -1430,6 +1430,7 @@ class LegendarySniperFuturesV8:
                     pass
 
             await self.db.init_db()
+            await self.print_recent_signals_to_logs()
             await self.tuner.load()
 
             market_tries = 0
