@@ -51,6 +51,31 @@ def check_outbound_ip():
 # استدعاء الفحص مباشرة عند بدء التشغيل
 check_outbound_ip()
 
+async def print_recent_signals_to_logs(self):
+    try:
+        async with aiosqlite.connect(self.db_name) as db:
+            async with db.execute("""
+                SELECT symbol, direction, entry_ts, score, result, pnl 
+                FROM signal_log 
+                WHERE result >= 0 
+                ORDER BY id DESC 
+                LIMIT 30;
+            """) as cursor:
+                rows = await cursor.fetchall()
+                if not rows:
+                    logger.info("📊 لا توجد إشارات مسجلة مطابقة حتى الآن في القاعدة.")
+                    return
+                
+                logger.info(f"📊 --- آخر {len(rows)} إشارة مسجلة في القاعدة ---")
+                for row in rows:
+                    symbol, direction, entry_ts, score, result, pnl = row
+                    import datetime
+                    time_str = datetime.datetime.fromtimestamp(entry_ts).strftime('%Y-%m-%d %H:%M:%S')
+                    res_text = "رابحة ✅" if result == 1 else "خاسرة ❌"
+                    logger.info(f"🪙 {symbol} | {direction} | وقت: {time_str} | تقييم: {score}/8 | النتيجة: {res_text} | PnL: {pnl} USDT")
+                logger.info("📊 ---------------------------------------------")
+    except Exception as e:
+        logger.warning(f"تعذر استخراج الإشارات للسجلات: {e}")
 # ═══════════════════════ قاعدة البيانات ═════════════════════
 class DatabaseManager:
     def __init__(self, db_name='sniper_v8.db'):
