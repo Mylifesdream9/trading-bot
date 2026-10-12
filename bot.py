@@ -407,6 +407,32 @@ class LegendarySniperFuturesV8:
 
         self.stats = {'total_scans': 0, 'trades_executed': 0, 'wins': 0, 'losses': 0}
 
+
+  async def print_recent_signals_to_logs(self):
+        try:
+            async with aiosqlite.connect(self.db.db_name) as db:
+                async with db.execute("""
+                    SELECT symbol, direction, entry_ts, score, result, pnl 
+                    FROM signal_log 
+                    WHERE result >= 0 
+                    ORDER BY id DESC 
+                    LIMIT 30;
+                """) as cursor:
+                    rows = await cursor.fetchall()
+                    if not rows:
+                        logger.info("📊 --- سجل الإشارات فارغ حالياً (تم حذفه مسبقاً أو لم تسجل صفقات بعد) ---")
+                        return
+                    
+                    logger.info(f"📊 --- آخر {len(rows)} إشارة مسجلة في القاعدة ---")
+                    for row in rows:
+                        symbol, direction, entry_ts, score, result, pnl = row
+                        import datetime
+                        time_str = datetime.datetime.fromtimestamp(entry_ts).strftime('%Y-%m-%d %H:%M:%S')
+                        res_text = "رابحة ✅" if result == 1 else "خاسرة ❌"
+                        logger.info(f"🪙 {symbol} | {direction} | وقت: {time_str} | تقييم: {score}/8 | النتيجة: {res_text} | PnL: {pnl} USDT")
+                    logger.info("📊 ---------------------------------------------")
+        except Exception as e:
+            logger.warning(f"تعذر استخراج الإشارات للسجلات: {e}")
     # ═══ نظام مكافحة الصمت ═══
     def _notify_error(self, source, exc=None, context=""):
         count = self.error_counts.get(source, 0) + 1
