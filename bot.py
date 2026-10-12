@@ -1456,8 +1456,9 @@ class LegendarySniperFuturesV8:
                     pass
 
             await self.db.init_db()
+            await self.print_recent_signals_to_logs()
             await self.tuner.load()
-
+          
             market_tries = 0
             while not self.all_futures_pairs:
                 market_tries += 1
