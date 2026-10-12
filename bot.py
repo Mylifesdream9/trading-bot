@@ -51,7 +51,7 @@ def check_outbound_ip():
 # استدعاء الفحص مباشرة عند بدء التشغيل
 check_outbound_ip()
 
-async def print_recent_signals_to_logs(self):
+   async def print_recent_signals_to_logs(self):
     try:
         async with aiosqlite.connect(self.db_name) as db:
             async with db.execute("""
@@ -104,6 +104,7 @@ class DatabaseManager:
                 result INTEGER DEFAULT -1, pnl REAL)""")
             await db.commit()
 
+  
     async def get_param(self, key):
         try:
             async with aiosqlite.connect(self.db_name) as db:
