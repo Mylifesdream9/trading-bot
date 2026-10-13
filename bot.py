@@ -1653,7 +1653,7 @@ class LegendarySniperFuturesV9:
             return
         for symbol, trade in list(self.active_trades.items()):
             try:
-               amt = await self.get_position_amt(symbol)
+              amt = await self.get_position_amt(symbol)
                     if amt is None:
                     continue
                 step = self.step_sizes_cache.get(symbol) or 1.0
