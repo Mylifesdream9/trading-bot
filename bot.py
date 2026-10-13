@@ -1646,15 +1646,15 @@ class LegendarySniperFuturesV9:
             logger.warning(f"فشل جلب الأرباح المحققة لـ {symbol}: {e}")
         return None
 
-    async def verify_positions(self):
+     async def verify_positions(self):
         if not self.TRADE_ENABLED or not self.binance_api_key:
             return
         if not self.active_trades:
             return
         for symbol, trade in list(self.active_trades.items()):
             try:
-                amt = await self.get_position_amt(symbol)
-                if amt is None:
+               amt = await self.get_position_amt(symbol)
+                    if amt is None:
                     continue
                 step = self.step_sizes_cache.get(symbol) or 1.0
                     if abs(amt) < step:
