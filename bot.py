@@ -1629,7 +1629,7 @@ class LegendarySniperFuturesV9:
             logger.warning(f"فشل استعلام المركز لـ {symbol}: {e}")
         return None
 
-  async def get_last_realized_pnl(self, symbol, trade):
+    async def get_last_realized_pnl(self, symbol, trade):
         try:
             res = await self._fapi_request('GET', '/fapi/v1/income',
                 {'symbol': symbol, 'incomeType': 'REALIZED_PNL', 'limit': 20}, signed=True)
@@ -1646,7 +1646,7 @@ class LegendarySniperFuturesV9:
             logger.warning(f"فشل جلب الأرباح المحققة لـ {symbol}: {e}")
         return None
 
-  async def verify_positions(self):
+    async def verify_positions(self):
         if not self.TRADE_ENABLED or not self.binance_api_key:
             return
         if not self.active_trades:
