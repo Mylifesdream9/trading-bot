@@ -1393,7 +1393,7 @@ class LegendarySniperFuturesV9:
             analysis['price'], analysis['sl'], available or self.TRADE_SIZE_USDT
         )
         # تطبيق حد أقصى = حجم الصفقة المحدد × 2
-        trade_size = min(dynamic_size, self.TRADE_SIZE_USDT * 2.0)
+        trade_size = min(dynamic_size, self.TRADE_SIZE_USDT)
         if available < trade_size * 1.2:
             self._notify_error("رصيد غير كافٍ للدخول",
                                context=f"المتاح {available:.2f}$ < المطلوب {trade_size * 1.2:.2f}$")
