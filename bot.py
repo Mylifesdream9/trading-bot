@@ -1657,7 +1657,7 @@ class LegendarySniperFuturesV9:
                 if amt is None:
                     continue
                 step = self.step_sizes_cache.get(symbol) or 1.0
-                   if abs(amt) < step:
+                    if abs(amt) < step:
                     is_win = pnl > 0 if pnl is not None else False
                     await self.db.set_signal_result(symbol, trade['entry_time'], is_win, pnl or 0.0)
                   pnl = await self.get_last_realized_pnl(symbol, trade)
