@@ -1532,6 +1532,12 @@ class LegendarySniperFuturesV9:
 
     async def _sync_stop_order(self, trade, current_price):
         symbol = trade['symbol']
+        
+        # ✅ إضافة فحص المركز للتأكد من أنه موجود ولا يسبب خطأ -4509
+        amt = await self.get_position_amt(symbol)
+        if amt is None or abs(amt) <= 0:
+            return False
+
         is_buy = trade['side'] == 'BUY'
         desired = trade['sl']
         if desired is None:
@@ -1547,9 +1553,13 @@ class LegendarySniperFuturesV9:
                 return False
 
         stop_side = 'SELL' if is_buy else 'BUY'
+        
+        # ✅ التعديل الأهم: استخدام quantity مع reduceOnly بدلاً من closePosition لـ Testnet
         new_id = await self._place_algo_order({
             'symbol': symbol, 'side': stop_side, 'type': 'STOP_MARKET',
-            'triggerPrice': desired_str, 'closePosition': 'true',
+            'triggerPrice': desired_str, 
+            'quantity': self.qty_to_str(symbol, abs(amt)),
+            'reduceOnly': 'true',
             'workingType': 'CONTRACT_PRICE'})
 
         if new_id:
