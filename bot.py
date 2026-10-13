@@ -1653,19 +1653,23 @@ class LegendarySniperFuturesV9:
             return
         for symbol, trade in list(self.active_trades.items()):
             try:
-              amt = await self.get_position_amt(symbol)
-                    if amt is None:
+                amt = await self.get_position_amt(symbol)
+                if amt is None:
                     continue
                 step = self.step_sizes_cache.get(symbol) or 1.0
-                    if abs(amt) < step:
+                if abs(amt) < step:
+                    pnl = await self.get_last_realized_pnl(symbol, trade)
+                    
+                    # ✅ تم جلب الأرباح أولاً، ثم تسجيلها وتحديث حالتها في اللوحة
                     is_win = pnl > 0 if pnl is not None else False
                     await self.db.set_signal_result(symbol, trade['entry_time'], is_win, pnl or 0.0)
-                  pnl = await self.get_last_realized_pnl(symbol, trade)
+
                     prices = self.get_price(symbol)
                     if prices:
                         px = prices['bid'] if trade['side'] == 'BUY' else prices['ask']
                     else:
                         px = trade['entry_price']
+                    
                     # تحديد نوع الإغلاق بناءً على PnL
                     if pnl is not None:
                         reason = "✅ أُغلق على المنصة (TP محتمل)" if pnl > 0 else "🛑 أُغلق على المنصة (SL محتمل)"
