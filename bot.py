@@ -76,7 +76,7 @@ check_outbound_ip()
 SCAN_INTERVAL_SECONDS = 30          # فاصل المسح (بدلاً من 60)
 REENTRY_COOLDOWN_SECONDS = 1200     # 20 دقيقة (بدلاً من 15)
 WS_STALE_ALERT_SECONDS = 120
-BALANCE_CACHE_SECONDS = 60
+BALANCE_CACHE_SECONDS = 5
 KLINE_CACHE_SECONDS = 180           # 3 دقائق cache لـ klines
 VERIFY_EVERY_N_LOOPS = 5
 MAX_DAILY_LOSSES = 3                # إيقاف اليوم بعد 3 خسائر
