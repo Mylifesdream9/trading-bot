@@ -787,24 +787,19 @@ def create_app(bot):
             async with aiosqlite.connect(bot.db.db_name) as db:
                 db.row_factory = aiosqlite.Row
                 
-                # استخراج الأيام مباشرة من سجل الإشارات المغلّقة لضمان دقة البيانات وحل مشكلة الجدول الفارغ
+                # جلب البيانات من جدول daily_stats الأساسي الموجود في البوت
                 async with db.execute(
-                        "SELECT date(entry_ts, 'unixepoch', 'localtime') as day_date, "
-                        "COALESCE(SUM(pnl), 0) as day_pnl, "
-                        "SUM(CASE WHEN result = 1 THEN 1 ELSE 0 end) as wins, "
-                        "SUM(CASE WHEN result = 0 THEN 1 ELSE 0 end) as losses, "
-                        "COUNT(*) as total "
-                        "FROM signal_log WHERE result >= 0 "
-                        "GROUP BY day_date ORDER BY day_date DESC LIMIT 14") as cur:
+                        "SELECT date, realized_pnl, wins, losses FROM daily_stats "
+                        "ORDER BY date DESC LIMIT 14") as cur:
                     rows = await cur.fetchall()
                 
                 for r in rows:
                     w = r['wins'] or 0
                     l = r['losses'] or 0
-                    total = r['total'] or (w + l)
-                    day_str = r['day_date']
+                    total = w + l
+                    day_str = r['date']
                     
-                    # جلب تفاصيل صفقات هذا اليوم
+                    # جلب الصفقات التابعة لهذا اليوم من signal_log باستخدام تحويل entry_ts إلى تاريخ
                     async with db.execute(
                         "SELECT symbol, direction, pnl, result FROM signal_log "
                         "WHERE date(entry_ts, 'unixepoch', 'localtime') = ? AND result >= 0", 
@@ -819,25 +814,28 @@ def create_app(bot):
 
                     days.append({
                         'date': day_str,
-                        'pnl': round(r['day_pnl'] or 0, 4),
+                        'pnl': round(r['realized_pnl'] or 0, 4),
                         'wins': w, 'losses': l, 'total': total,
                         'winrate': round(w / total * 100, 1) if total > 0 else None,
                         'trades': day_trades
                     })
 
-                # الإجماليات عبر التاريخ
+                # إحصائيات الإجماليات
                 async with db.execute(
-                        "SELECT COUNT(DISTINCT date(entry_ts, 'unixepoch', 'localtime')) c, COALESCE(SUM(pnl),0) p FROM signal_log WHERE result >= 0") as cur:
+                        "SELECT COUNT(*) c, COALESCE(SUM(realized_pnl),0) p FROM daily_stats "
+                        "WHERE wins + losses > 0") as cur:
                     a = await cur.fetchone()
                     if a:
                         agg_c, agg_p = a['c'] or 0, a['p'] or 0.0
 
                 async with db.execute(
-                        "SELECT date(entry_ts, 'unixepoch', 'localtime') as day_date, SUM(pnl) as pnl FROM signal_log WHERE result >= 0 GROUP BY day_date ORDER BY pnl DESC LIMIT 1") as cur:
+                        "SELECT date, realized_pnl FROM daily_stats "
+                        "WHERE wins + losses > 0 ORDER BY realized_pnl DESC LIMIT 1") as cur:
                     best = await cur.fetchone()
 
                 async with db.execute(
-                        "SELECT date(entry_ts, 'unixepoch', 'localtime') as day_date, SUM(pnl) as pnl FROM signal_log WHERE result >= 0 GROUP BY day_date ORDER BY pnl ASC LIMIT 1") as cur:
+                        "SELECT date, realized_pnl FROM daily_stats "
+                        "WHERE wins + losses > 0 ORDER BY realized_pnl ASC LIMIT 1") as cur:
                     worst = await cur.fetchone()
 
                 async with db.execute(
@@ -865,8 +863,8 @@ def create_app(bot):
                 'total_closed': total_closed,
                 'total_wins': total_wins,
                 'overall_winrate': round(total_wins / total_closed * 100, 1) if total_closed else None,
-                'best_day': {'date': best['day_date'], 'pnl': round(best['pnl'], 4)} if best and best['day_date'] else None,
-                'worst_day': {'date': worst['day_date'], 'pnl': round(worst['pnl'], 4)} if worst and worst['day_date'] else None,
+                'best_day': {'date': best['date'], 'pnl': round(best['realized_pnl'], 4)} if best else None,
+                'worst_day': {'date': worst['date'], 'pnl': round(worst['realized_pnl'], 4)} if worst else None,
             },
             'trades_today_live': bot._trades_today(),
         })
