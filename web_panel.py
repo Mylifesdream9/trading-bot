@@ -351,16 +351,27 @@ async function loadAll(){
   if(dB){
     if(!dper.days || !dper.days.length){ dB.innerHTML = '<div class="empty">لا سجل أيام بعد — يُجمع تلقائياً مع كل صفقة</div>'; }
     else{
-      let h = '<table><tr><th>اليوم</th><th>النتيجة</th><th>✅ رابحة</th><th>❌ خاسرة</th><th>المجموع</th><th>نسبة الفوز</th></tr>';
+      let h = '';
       dper.days.forEach(d=>{
-        h += '<tr><td><b>'+d.date+'</b></td>'
-          + '<td class="'+(d.pnl>=0?'pos':'neg')+'"><b>'+mo(d.pnl)+'</b></td>'
-          + '<td style="color:var(--green)">'+d.wins+'</td>'
-          + '<td style="color:var(--red)">'+d.losses+'</td>'
-          + '<td>'+d.total+'</td>'
-          + '<td>'+(d.winrate!==null&&d.winrate!==undefined?d.winrate+'%':'—')+'</td></tr>';
+        let tradesHtml = '';
+        if(d.trades && d.trades.length > 0){
+          tradesHtml = '<div style="margin-top:8px;font-size:12px;color:var(--sub)">صفقات اليوم: ' 
+            + d.trades.map(tr => '<b>'+tr.symbol+'</b> ('+(tr.direction==='BUY'?'شراء':'بيع')+': <span class="'+(tr.pnl>=0?'pos':'neg')+'">'+mo(tr.pnl)+'</span>)').join(' | ') 
+            + '</div>';
+        }
+        h += '<div style="background:var(--bg2);padding:12px;border-radius:10px;margin-bottom:10px">'
+          + '<div style="display:flex;justify-content:space-between;align-items:center">'
+          + '<div><b>📅 التاريخ: ' + d.date + '</b></div>'
+          + '<div class="'+(d.pnl>=0?'pos':'neg')+'" style="font-weight:800;font-size:16px">'+mo(d.pnl)+'</div>'
+          + '</div>'
+          + '<div style="display:flex;gap:15px;margin-top:6px;font-size:13px;color:var(--sub)">'
+          + '<span>✅ رابحة: <b style="color:var(--green)">'+d.wins+'</b></span>'
+          + '<span>❌ خاسرة: <b style="color:var(--red)">'+d.losses+'</b></span>'
+          + '<span>📊 المجموع: <b>'+d.total+'</b></span>'
+          + '<span>🏆 نسبة الفوز: <b>'+(d.winrate!==null&&d.winrate!==undefined?d.winrate+'%':'—')+'</b></span>'
+          + '</div>' + tradesHtml + '</div>';
       });
-      dB.innerHTML = h + '</table>';
+      dB.innerHTML = h;
     }
   }
   const aB = document.getElementById('aggBox');
