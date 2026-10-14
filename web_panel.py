@@ -737,17 +737,19 @@ def create_app(bot):
                 db.row_factory = aiosqlite.Row
                 async with db.execute(
                         "SELECT symbol, direction, entry_ts, score, result, pnl "
-                        "FROM signal_log WHERE result >= 0 ORDER BY id DESC LIMIT 25") as cur:
+                        "FROM signal_log WHERE result >= 0 ORDER BY id DESC LIMIT 50") as cur:
                     rows = await cur.fetchall()
                 for r in rows:
                     out.append({
-                        'symbol': r['symbol'], 'direction': r['direction'],
-                        'time': time.strftime('%m-%d %H:%M', time.localtime(r['entry_ts'])),
+                        'symbol': r['symbol'], 
+                        'direction': r['direction'],
+                        'time': time.strftime('%m-%d %H:%M', time.localtime(r['entry_ts'] or time.time())),
                         'pnl': round(r['pnl'] or 0, 4),
-                        'pnl_pct': round(((r['pnl'] or 0) / bot.TRADE_SIZE_USDT * 100), 1),
-                        'score': r['score'],
+                        'pnl_pct': round(((r['pnl'] or 0) / (bot.TRADE_SIZE_USDT if bot.TRADE_SIZE_USDT else 1) * 100), 1),
+                        'score': r['score'] or 0,
                     })
-        except Exception:
+        except Exception as e:
+            print(f"Error fetching closed trades: {e}")
             pass
         return j(out)
 
