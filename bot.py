@@ -95,8 +95,10 @@ HIGH_IMPACT_NEWS_EVENTS = {
 #  Database Manager (محسّن)
 # ══════════════════════════════════════════════════════════════════════
 class DatabaseManager:
-    def __init__(self, db_name='sniper_v9.db'):
-        self.db_name = db_name
+    def __init__(self, db_name=None):
+        volume_dir = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH', '/data')
+        os.makedirs(volume_dir, exist_ok=True)
+        self.db_name = os.path.join(volume_dir, 'sniper_v9.db')
 
     async def init_db(self):
         async with aiosqlite.connect(self.db_name) as db:
