@@ -771,20 +771,39 @@ def create_app(bot):
         try:
             async with aiosqlite.connect(bot.db.db_name) as db:
                 db.row_factory = aiosqlite.Row
+                # جلب الإحصائيات اليومية
                 async with db.execute(
                         "SELECT date, realized_pnl, wins, losses FROM daily_stats "
                         "ORDER BY date DESC LIMIT 14") as cur:
                     rows = await cur.fetchall()
+                
                 for r in rows:
                     w = r['wins'] or 0
                     l = r['losses'] or 0
                     total = w + l
+                    
+                    # جلب الصفقات التابعة لهذا اليوم تحديثاً من سجل الإشارات أو الصفقات
+                    day_str = r['date']
+                    async with db.execute(
+                        "SELECT symbol, direction, pnl, result FROM signal_log "
+                        "WHERE date(entry_ts, 'unixepoch', 'localtime') = ? AND result >= 0", 
+                        (day_str,)) as d_cur:
+                        d_rows = await d_cur.fetchall()
+                        day_trades = [{
+                            'symbol': dr['symbol'],
+                            'direction': dr['direction'],
+                            'pnl': round(dr['pnl'] or 0, 4),
+                            'win': dr['result'] == 1
+                        } for dr in d_rows]
+
                     days.append({
                         'date': r['date'],
                         'pnl': round(r['pnl'] or 0, 4),
                         'wins': w, 'losses': l, 'total': total,
                         'winrate': round(w / total * 100, 1) if total > 0 else None,
+                        'trades': day_trades
                     })
+
                 async with db.execute(
                         "SELECT COUNT(*) c, COALESCE(SUM(realized_pnl),0) p FROM daily_stats "
                         "WHERE wins + losses > 0") as cur:
@@ -804,13 +823,15 @@ def create_app(bot):
                 async with db.execute(
                         "SELECT COUNT(*) c FROM signal_log WHERE result = 1") as cur:
                     total_wins = (await cur.fetchone())[0]
-        except Exception:
+        except Exception as e:
+            print(f"Error in daily_performance: {e}")
             pass
+
         today = time.strftime('%Y-%m-%d')
         today_data = next((d for d in days if d['date'] == today), None)
         if not today_data:
             today_data = {'date': today, 'pnl': 0, 'wins': 0, 'losses': 0,
-                          'total': 0, 'winrate': None}
+                          'total': 0, 'winrate': None, 'trades': []}
         return j({
             'ok': True,
             'today': today_data,
