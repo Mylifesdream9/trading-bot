@@ -419,10 +419,10 @@ class AdaptiveTunerV2:
         self.proximity_pct = 0.005
         # صرامة الستوكاستك
         self.stoch_strictness = 1
-        # ✅ V9.2: SL = 0.5×ATR تحت OB
+        # ✅ V9.3: SL = 0.5×ATR تحت OB
         self.sl_atr_mult = 0.5
-        # ✅ V9.2: TP1 = 3.0×ATR
-        self.tp1_atr_mult = 3.0
+        # ✅ V9.3: TP1 = 2.0×ATR (مُحدّث لحجز الأرباح عند مستويات 4-5$)
+        self.tp1_atr_mult = 2.0
         # نسبة الجني الجزئي
         self.partial_ratio = 0.7
         # عتبة التقلب
