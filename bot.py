@@ -438,7 +438,7 @@ class AdaptiveTunerV2:
         self.proximity_pct = max(0.002, min(0.01, float(self.proximity_pct)))
         self.stoch_strictness = max(0, min(1, int(self.stoch_strictness)))
         self.sl_atr_mult = max(0.3, min(0.8, float(self.sl_atr_mult)))  # ✅ V9.2: 0.3-0.8
-        self.tp1_atr_mult = max(2.5, min(4.0, float(self.tp1_atr_mult)))  # ✅ V9.2: 2.5-4.0
+        self.tp1_atr_mult = max(1.2, min(4.0, float(self.tp1_atr_mult)))  # 👈 السماح للحد الأدنى بالنزول إلى 1.2
         self.partial_ratio = max(0.5, min(1.0, float(self.partial_ratio)))
         self.volatility_threshold = max(3.0, min(8.0, float(self.volatility_threshold)))
         self.trailing_pct = max(0.015, min(0.035, float(self.trailing_pct)))  # ✅ V9.2: 1.5-3.5%
