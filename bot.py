@@ -1676,17 +1676,17 @@ class LegendarySniperFuturesV8:
             elif not is_buy and current_price < trade.get('lowest_price', 999999):
                 trade['lowest_price'] = current_price; changed = True
 
-            # 1) وقف الخسارة
+            # 1) وقف الخسارة (الحماية المحلية الفورية التي تغلق ماركت بدون أخطاء بينانس)
             if (is_buy and current_price <= trade['sl']) or (not is_buy and current_price >= trade['sl']):
                 closed, fill_price, pnl_override = await self._close_position(trade, current_price)
                 if closed:
-                    await self._finalize_trade(trade, fill_price, "🛑 ضرب SL", pnl_override)
+                    await self._finalize_trade(trade, fill_price, "🛑 ضرب SL (حماية محلية مؤكدة)", pnl_override)
                 continue
 
-            # 2) الجني الجزئي عند TP1 — ✅ V8.2: نسبة ديناميكية حسب تقييم الصفقة
+            # 2) الجني الجزئي عند TP1
             if not trade.get('partial_closed', False) and trade.get('tp'):
                 if (is_buy and current_price >= trade['tp']) or (not is_buy and current_price <= trade['tp']):
-                    ratio = trade.get('partial_ratio', 0.9)   # ✅ V8.2: 50%/70%/90%
+                    ratio = trade.get('partial_ratio', 0.9)
                     partial_qty = self.format_quantity(symbol, trade['quantity'] * ratio)
                     remaining_qty = self.format_quantity(symbol, trade['quantity'] - partial_qty)
                     min_notional = self.min_notional_cache.get(symbol, 5.0)
@@ -1722,7 +1722,6 @@ class LegendarySniperFuturesV8:
                         await self.tg(f"🎯 *جني أرباح أول (`{symbol}`)*\n"
                                       f"💸 أُغلق {int(ratio*100)}% بربح: `{partial_pnl:.4f} USDT`\n"
                                       f"🛡️ الوقف على التعادل (+0.3%)")
-                        await self._place_tp_order(trade, current_price)
                     else:
                         amt = await self.get_position_amt(symbol)
                         if amt is not None and abs(amt) < (self.step_sizes_cache.get(symbol) or 1.0):
@@ -1734,7 +1733,6 @@ class LegendarySniperFuturesV8:
 
             # 3) الوقف المتحرك (بعد الجزئي)
             if trade.get('partial_closed'):
-                # ✅ V9.0: نسبة الوقف المتحرك من المطوّر (افتراضي 1% — تظهر في اللوحة)
                 trail = self.tuner.trailing_pct
                 if is_buy:
                     new_sl = trade['highest_price'] * (1 - trail)
@@ -1745,16 +1743,12 @@ class LegendarySniperFuturesV8:
                     if new_sl < trade['sl']:
                         trade['sl'] = new_sl; changed = True
 
-            # 4) مزامنة ستوب المنصة
-            if await self._sync_stop_order(trade, current_price):
-                changed = True
-
             if changed:
                 await self.db.save_trade(trade)
 
         if stale_symbols:
             self._notify_error("أسعار مجمّدة لمراكز مفتوحة",
-                               context=f"{', '.join(stale_symbols)} — ستوب المنصة يحميها")
+                               context=f"{', '.join(stale_symbols)}")
 
     # ═══ ✅ V9.2: المسح الكامل للسوق (Universe Hunter) ═══
     def _build_universe(self, tickers):
