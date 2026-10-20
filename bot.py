@@ -83,7 +83,7 @@ def _libya_logtime(*args):
         if ts is None:
             import time as _t
             ts = _t.time()
-        return datetime.fromtimestamp(ts, timezone(timedelta(hours=2))).timetuple()
+     return datetime.fromtimestamp(ts, timezone(timedelta(hours=2))).timetuple()
     except Exception:
         import time as _t
         return _t.localtime()
