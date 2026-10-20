@@ -69,11 +69,35 @@ def fmt_time_libya(ts=None, with_seconds=False):
     return f"{dt.month:02d}-{dt.day:02d} {base} {mer}"
 
 
-def libya_date(ts=None):
-    """📅 تاريخ اليوم بتوقيت ليبيا — حدود اليوم تنتهي عند منتصف ليل ليبيا"""
-    dt = datetime.now(LIBYA_TZ) if ts is None else datetime.fromtimestamp(ts, LIBYA_TZ)
-    return dt.strftime('%Y-%m-%d')
 
+# ─── ⏰ توقيت ليبيا (UTC+2 ثابت) + نظام 12 ساعة صباحاً/مساءً — نسخة آمنة ───
+def _libya_logtime(*args):
+    """محوّل وقت السجل — يقبل أي عدد من الوسائط (يُنهي خطأ الوسيطين نهائياً)."""
+    try:
+        from datetime import datetime, timezone, timedelta
+        ts = args[-1] if args else None
+        try:
+            ts = float(ts) if ts is not None else None
+        except (TypeError, ValueError):
+            ts = None
+        if ts is None:
+            import time as _t
+            ts = _t.time()
+        return datetime.fromtimestamp(ts, timezone(timedelta(hours=2))).timetuple()
+    except Exception:
+        import time as _t
+        return _t.localtime()
+
+
+class _LibyaTimeFormatter(logging.Formatter):
+    """السجل بتوقيت ليبيا ونظام 12 ساعة مع صباحاً/مساءً."""
+    converter = staticmethod(_libya_logtime)
+
+    def formatTime(self, record, datefmt=None):
+        from datetime import datetime, timezone, timedelta
+        dt = datetime.fromtimestamp(record.created, timezone(timedelta(hours=2)))
+       
+      return dt.strftime('%d-%m-%Y %I:%M:%S') + (' صباحاً' if dt.hour < 12 else ' مساءً')
 logger = logging.getLogger('SniperV9')
 logger.setLevel(logging.INFO)
 fmt = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
