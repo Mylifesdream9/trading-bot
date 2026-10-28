@@ -4347,6 +4347,10 @@ class LegendarySniperSBR:
             await self.db.init_db()   # الجداول والأعمدة جاهزة قبل إقلاع اللوحة
             await start_web_panel(self)
 
+     async with aiosqlite.connect(self.db.db_name) as db:
+            await db.execute("DELETE FROM bot_params WHERE key = 'risk_state'")
+            await db.commit()
+          
             loop = asyncio.get_running_loop()
             for sig_name in ('SIGINT', 'SIGTERM'):
                 try:
