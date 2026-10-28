@@ -1288,9 +1288,9 @@ class LegendarySniperFuturesV8:
     # ═══ ✅ V9.1: محرك ستوب المنصة — سلّم محاولات ذكي مع تشخيص كامل ═══
     async def _place_stop_order(self, trade, desired=None):
         """
-        يحاول تثبيت الستوب بثلاث استراتيجيات بالترتيب:
-          1) STOP_MARKET + closePosition=true (يُرفض على بعض أنواع الحسابات)
-          2) STOP_MARKET + reduceOnly + الكمية المتبقية (بديل شبه مضمون)
+        يحاول تثبيت الستوب بثلاث استراتيجيات بالترتيب عبر المسار الحديث المتوافق مع Binance:
+          1) STOP_MARKET + closePosition=true
+          2) STOP_MARKET + reduceOnly + الكمية المتبقية
           3) عند -2021 "سيُفعَّل فوراً": إبعاد سعر الستوب بهامش أمان وإعادة المحاولة
         يحدّث: stop_order_id / stop_synced_price / stop_state / stop_error
         """
@@ -1308,11 +1308,19 @@ class LegendarySniperFuturesV8:
                 return False   # سيُرفض فوراً (would immediately trigger)
 
         desired_str = self.price_to_str(symbol, desired)
-        base = {'symbol': symbol, 'side': stop_side, 'type': 'STOP_MARKET',
-                'workingType': 'CONTRACT_PRICE'}
+        
+        # ✅ تحديث هيكل البيانات ليتوافق مع نظام الأوامر الحديث في بينانس
+        base = {
+            'symbol': symbol, 
+            'side': stop_side, 
+            'type': 'STOP_MARKET',
+            'stopPrice': desired_str,
+            'workingType': 'CONTRACT_PRICE'
+        }
+        
         attempts = [
-            ('closePosition', dict(base, stopPrice=desired_str, closePosition='true')),
-            ('reduceOnly', dict(base, stopPrice=desired_str,
+            ('closePosition', dict(base, closePosition='true')),
+            ('reduceOnly', dict(base, 
                                 quantity=self.qty_to_str(symbol, trade.get('quantity', 0)),
                                 reduceOnly='true')),
         ]
@@ -1333,11 +1341,19 @@ class LegendarySniperFuturesV8:
                 buffer = max(3 * tick, cur * 0.0015)
                 nudged = cur - buffer if is_buy else cur + buffer
                 n_str = self.price_to_str(symbol, nudged)
-                status2, res2 = await self._place_conditional_order(
-                    dict(base, stopPrice=n_str, closePosition='true'), detailed=True)
+                
+                nudged_params = dict(base)
+                nudged_params['stopPrice'] = n_str
+                nudged_params['closePosition'] = 'true'
+                if 'quantity' in nudged_params:
+                    nudged_params.pop('quantity', None)
+                if 'reduceOnly' in nudged_params:
+                    nudged_params.pop('reduceOnly', None)
+
+                status2, res2 = await self._place_conditional_order(nudged_params, detailed=True)
                 if status2 == 'OK':
                     self._stop_success(trade, res2, nudged, 'STOP_MARKET(nudged-2021)')
-                    trade['sl'] = nudged   # ✅ توحيد الوقف المحلي مع المنصة (لا دوران إعادة)
+                    trade['sl'] = nudged   # ✅ توحيد الوقف المحلي مع المنصة
                     self._reset_error(f"ستوب المنصة {symbol}")
                     await self.tg(f"🛡️ ستوب `{symbol}` وُضع مُبعداً قليلاً ({n_str}) "
                                   f"تفادياً للرفض الفوري — الأصلي {desired_str}")
