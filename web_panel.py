@@ -1710,6 +1710,7 @@ def create_app(bot):
                 await db.execute("DELETE FROM signal_log")
                 await db.execute("DELETE FROM daily_stats")
                 await db.execute("DELETE FROM scan_rejections")
+                await db.execute("DELETE FROM bot_params WHERE key = 'risk_state'")
                 await db.commit()
             cleared.append('سجل الصفقات والإشارات وأسباب الرفض')
             cleared.append('الإحصائيات اليومية')
