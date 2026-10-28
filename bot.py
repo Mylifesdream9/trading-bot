@@ -189,13 +189,13 @@ class AdaptiveTuner:
     """
     def __init__(self, db):
         self.db = db
-        self.min_score = 4
+        self.min_score = 6          # ✅ حد أدنى ثابت 6/8 — لا يُخفَّض أبداً
         self.proximity_pct = 0.02
         self.strict_stoch = True
         self.results = collections.deque(maxlen=20)
 
     def _clamp(self):
-        self.min_score = max(3, min(6, int(self.min_score)))
+        self.min_score = 6          # ✅ أمان ثابت: لا صفقات بتقييم أقل من 6/8
         self.proximity_pct = max(0.015, min(0.045, float(self.proximity_pct)))
 
     async def load(self):
@@ -203,7 +203,7 @@ class AdaptiveTuner:
         if raw:
             try:
                 d = json.loads(raw)
-                self.min_score = int(d.get('min_score', 4))
+                self.min_score = max(6, int(d.get('min_score', 6)))
                 self.proximity_pct = float(d.get('proximity_pct', 0.02))
                 self.strict_stoch = bool(d.get('strict_stoch', True))
                 self.results = collections.deque(d.get('results', [])[-20:], maxlen=20)
@@ -230,24 +230,21 @@ class AdaptiveTuner:
         return sum(recent) / len(recent)
 
     def relax_step(self):
-        before = (self.min_score, round(self.proximity_pct, 4))
-        if self.min_score > 3:
-            self.min_score -= 1
-        else:
+        # ✅ يحافظ على التقييم ≥6 دائماً — يرتخي فقط في نسبة القرب وصرامة الستوك
+        before = round(self.proximity_pct, 4)
+        if self.proximity_pct < 0.045:
             self.proximity_pct = round(min(0.045, self.proximity_pct + 0.005), 4)
-        if self.min_score <= 3:
-            self.strict_stoch = False
-        return before != (self.min_score, round(self.proximity_pct, 4))
+        if self.min_score <= 6 and not self.strict_stoch:
+            self.strict_stoch = False  # لا تغيير — الارتخاء في القرب فقط
+        return before != round(self.proximity_pct, 4)
 
     def tighten_step(self):
-        before = (self.min_score, round(self.proximity_pct, 4))
+        # ✅ min_score مثبّت عند 6 — التشديد في القرب/الستوك فقط
+        before = (self.strict_stoch, round(self.proximity_pct, 4))
         if self.proximity_pct > 0.02:
             self.proximity_pct = round(max(0.02, self.proximity_pct - 0.005), 4)
-        elif self.min_score < 6:
-            self.min_score += 1
-        if self.min_score >= 4:
-            self.strict_stoch = True
-        return before != (self.min_score, round(self.proximity_pct, 4))
+        self.strict_stoch = True
+        return before != (self.strict_stoch, round(self.proximity_pct, 4))
 
     def describe(self):
         return (f"min_score={self.min_score} | قرب OB≤{self.proximity_pct*100:.1f}% | "
@@ -381,6 +378,7 @@ class LegendarySniperFuturesV8:
         self.error_counts = {}
         self.last_discovery_alert = {}
         self.entry_history = collections.deque(maxlen=200)   # (ts, date) لحساب صفقات اليوم
+        self.last_scan_info = None   # ✅ تتبع دورة المسح للوحة: {ts, volatile, scanned, signals}
         self._last_heartbeat = 0
         self._report_day = time.strftime("%Y-%m-%d")
         self._last_freq_check = 0
@@ -1114,7 +1112,7 @@ class LegendarySniperFuturesV8:
             # 2) جني 90% عند TP1
             if not trade.get('partial_closed', False) and trade.get('tp'):
                 if (is_buy and current_price >= trade['tp']) or (not is_buy and current_price <= trade['tp']):
-                    partial_qty = self.format_quantity(symbol, trade['quantity'] * 0.9)
+                    partial_qty = self.format_quantity(symbol, trade['quantity'] * 0.7)  # ✅ جني 70%
                     remaining_qty = self.format_quantity(symbol, trade['quantity'] - partial_qty)
                     min_notional = self.min_notional_cache.get(symbol, 5.0)
 
@@ -1147,7 +1145,7 @@ class LegendarySniperFuturesV8:
                         trade['sl'] = trade['entry_price'] * 1.003 if is_buy else trade['entry_price'] * 0.997
                         changed = True
                         await self.tg(f"🎯 *جني أرباح أول (`{symbol}`)*\n"
-                                      f"💸 أُغلق 90% بربح: `{partial_pnl:.4f} USDT`\n"
+                                      f"💸 أُغلق 70% بربح: `{partial_pnl:.4f} USDT`\n"
                                       f"🛡️ الوقف على التعادل (+0.3%)")
                         # ✅ ثبّت TP2 للكمية المتبقية على المنصة (ينجو من انهيار البوت)
                         await self._place_tp_order(trade, current_price)
@@ -1211,6 +1209,14 @@ class LegendarySniperFuturesV8:
             if analysis:
                 results.append(analysis)
             await asyncio.sleep(0.5)
+
+        # ✅ تتبع دورة المسح الحالية — يظهر في لوحة الأدمن
+        self.last_scan_info = {
+            'ts': time.time(),
+            'volatile': len(targets),
+            'scanned': min(len(targets), 20),
+            'signals': len(results)
+        }
 
         # ✅ تنبيه فريد لكل زوج/اتجاه كل 30 دقيقة كحد أقصى
         fresh_lines = []
