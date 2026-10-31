@@ -420,3 +420,8 @@ class TrendDB:
                 out["daily"] = [{"date": x[0], "pnl": round(x[1] or 0, 2), "wins": x[2], "losses": x[3]}
                                 for x in await cur.fetchall()]
         return out
+
+# ═══════════════ نقطة التشغيل ═══════════════
+if __name__ == "__main__":
+    bot = strategy_trend.py()
+    bot.start()
