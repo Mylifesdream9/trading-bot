@@ -1,0 +1,8 @@
+# احتياط فقط: Dockerfile يثبّت الحزم داخله مباشرة ولا يقرأ هذا الملف.
+# موجود إذا كانت منصتك تبني المشروع بدون دوكر (Buildpacks/Nixpacks).
+aiohttp>=3.9
+websockets>=11
+aiosqlite>=0.19
+pandas>=2.0
+numpy>=1.24
+requests>=2.31
