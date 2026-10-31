@@ -421,7 +421,3 @@ class TrendDB:
                                 for x in await cur.fetchall()]
         return out
 
-# ═══════════════ نقطة التشغيل ═══════════════
-if __name__ == "__main__":
-    bot = strategy_trend.py()
-    bot.start()
