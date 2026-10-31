@@ -17,3 +17,4 @@ EXPOSE 8080
 
 # ⬅️ الإصلاح 2: التشغيل من bot_v9.py وليس bot.py
 CMD ["python", "-u", "bot_v9.py"]
+CMD ["python", "-u", "strategy_trend.py"]
